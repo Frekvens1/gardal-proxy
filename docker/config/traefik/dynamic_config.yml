@@ -1,0 +1,44 @@
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+  routers:
+    base-router:
+      entryPoints:
+        - websecure
+      service: frontend-service
+      rule: Host(`{{ trim (env "DOMAIN_NAME") }}`)
+
+    base-router-redirect:
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+      service: frontend-service
+      rule: Host(`{{ trim (env "DOMAIN_NAME") }}`)
+
+    api-router:
+      entryPoints:
+        - websecure
+      service: backend-service
+      rule: Host(`{{ trim (env "DOMAIN_NAME") }}`) && PathPrefix(`/api`)
+      middlewares:
+        - strip-api-prefix
+
+  services:
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: {{ trim (env "FRONTEND_HOST") }}
+
+    backend-service:
+      loadBalancer:
+        servers:
+          - url: {{ trim (env "BACKEND_HOST") }}

@@ -1,0 +1,26 @@
+name: ${COMPOSE_NAME}
+
+networks:
+  local:
+    driver: bridge
+
+services:
+  traefik-master:
+      build: images/traefik-host
+      image: traefik-host:latest
+      restart: unless-stopped
+      container_name: ${COMPOSE_NAME}-traefik
+      command:
+        - "--configFile=/etc/traefik/traefik_config.yml"
+      ports:
+        - 80:80
+        - 443:443
+        - 8080:8080
+      environment:
+        - TZ=${TZ}
+        - COMPOSE_NAME=${COMPOSE_NAME}
+        - DOMAIN_NAME=${DOMAIN_NAME}
+        - FRONTEND_HOST=${FRONTEND_HOST}
+        - BACKEND_HOST=${BACKEND_HOST}
+      networks:
+        local:

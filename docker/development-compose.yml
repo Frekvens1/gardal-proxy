@@ -1,0 +1,31 @@
+name: ${COMPOSE_NAME}
+
+networks:
+  local:
+    driver: bridge
+
+services:
+  traefik-master:
+      image: traefik:latest
+      restart: unless-stopped
+      container_name: ${COMPOSE_NAME}-traefik
+      command:
+        - --configFile=/etc/traefik/traefik_config.yml
+      ports:
+        - 80:80
+        - 443:443
+        - 8080:8080
+      environment:
+        - TZ=${TZ}
+        - COMPOSE_NAME=${COMPOSE_NAME}
+        - DOMAIN_NAME=${DOMAIN_NAME}
+        - FRONTEND_HOST=${FRONTEND_HOST}
+        - BACKEND_HOST=${BACKEND_HOST}
+        # Traefik dynamic provider
+        - TRAEFIK_PROVIDERS_HTTP_ENDPOINT=$BACKEND_HOST/traefik_config
+        - TRAEFIK_PROVIDERS_HTTP_POLLINTERVAL=5s
+      volumes:
+        - ./config/traefik:/etc/traefik:ro # Volume to store the Traefik configuration
+        - ./config/letsencrypt:/letsencrypt # Volume to store the Let's Encrypt certificates
+      networks:
+        local:
