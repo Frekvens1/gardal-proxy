@@ -4,28 +4,68 @@ networks:
   local:
     driver: bridge
 
+volumes:
+  mongo-data:
+  valkey-data:
+
 services:
   traefik-master:
       image: traefik:latest
       restart: unless-stopped
       container_name: ${COMPOSE_NAME}-traefik
-      command:
-        - --configFile=/etc/traefik/traefik_config.yml
       ports:
         - 80:80
         - 443:443
         - 8080:8080
+      command:
+        - "--log.level=DEBUG"
+        - "--log.format=common"
+        - "--api.insecure=true"
+        - "--api.dashboard=true"
+        - "--providers.file.filename=/etc/traefik/dynamic_config.yml"
+        - "--providers.file.watch=true"
+        - "--providers.http.endpoint=$BACKEND_HOST/traefik_config"
+        - "--providers.http.pollInterval=5s"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.websecure.address=:443"
+        - "--entrypoints.websecure.http.tls=true"
+        - "--serverstransport.insecureSkipVerify=true"
       environment:
         - TZ=${TZ}
         - COMPOSE_NAME=${COMPOSE_NAME}
         - DOMAIN_NAME=${DOMAIN_NAME}
         - FRONTEND_HOST=${FRONTEND_HOST}
         - BACKEND_HOST=${BACKEND_HOST}
-        # Traefik dynamic provider
-        - TRAEFIK_PROVIDERS_HTTP_ENDPOINT=$BACKEND_HOST/traefik_config
-        - TRAEFIK_PROVIDERS_HTTP_POLLINTERVAL=5s
       volumes:
         - ./config/traefik:/etc/traefik:ro # Volume to store the Traefik configuration
         - ./config/letsencrypt:/letsencrypt # Volume to store the Let's Encrypt certificates
       networks:
         local:
+
+  mongo:
+    image: mongo:8.0.10
+    restart: always
+    container_name: ${COMPOSE_NAME}-mongo
+    ports:
+      - 27017:27017
+    environment:
+      - TZ=${TZ}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks:
+        local:
+
+  valkey:
+    image: bitnami/valkey:8.1.2
+    restart: always
+    container_name: ${COMPOSE_NAME}-valkey
+    environment:
+      - TZ=${TZ}
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+    ports:
+      - 6379:6379
+    volumes:
+      - 'valkey-data:/bitnami/valkey/data'
+

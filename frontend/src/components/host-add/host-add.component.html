@@ -1,0 +1,22 @@
+<p-panel header="Add host">
+  <div class="flex items-center gap-2">
+    <p-inputgroup>
+      <p-inputgroup-addon>id</p-inputgroup-addon>
+      <input pInputText [(ngModel)]="unid" placeholder="ID"/>
+    </p-inputgroup>
+
+    <p-inputgroup>
+      <p-inputgroup-addon>www</p-inputgroup-addon>
+      <input pInputText [(ngModel)]="hostname" placeholder="Hostname"/>
+    </p-inputgroup>
+
+    <p-inputgroup>
+      <p-inputgroup-addon>redirect</p-inputgroup-addon>
+      <input pInputText [(ngModel)]="redirectUrl" placeholder="Redirect URL"/>
+    </p-inputgroup>
+
+
+    <label for="wildcard">Enable wildcard</label>
+    <p-toggleswitch inputId="wildcard" [(ngModel)]="wildcard"/>
+  </div>
+</p-panel>

@@ -1,12 +1,22 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import {Component} from '@angular/core';
+import {RouterOutlet} from '@angular/router';
+import {BackendService} from '../core/services/backend.service';
+import {HostRepository} from '../core/api/host.repository';
+import {NodeRepository} from '../core/api/node.repository';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.scss',
+  imports: [
+    RouterOutlet,
+  ],
+  providers: [
+    BackendService,
+    HostRepository,
+    NodeRepository,
+  ],
 })
 export class AppComponent {
-  title = 'frontend';
+
 }
