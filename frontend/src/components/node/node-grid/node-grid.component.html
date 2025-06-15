@@ -10,7 +10,7 @@
     <div class="flex items-center gap-5">
       <span class="text-xl font-bold">Traefik nodes</span>
       <p-button label="Node" variant="outlined"
-                icon="pi pi-plus" severity="contrast"
+                icon="pi pi-plus" severity="primary"
                 (onClick)="openEditNodeModal()"/>
       <p-button class="ml-auto"
                 icon="pi pi-refresh" variant="outlined"
@@ -45,7 +45,7 @@
     <tr>
       <td>
         @if (serverNode.hostnames?.all?.length > 0) {
-          <p-button type="button" pButtonIcon pRipple variant="text" severity="contrast"
+          <p-button type="button" pButtonIcon pRipple variant="text" severity="secondary"
                     [pRowToggler]="serverNode" rounded>
             @if (expanded) {
               <ChevronDownIcon pButtonIcon/>
@@ -80,7 +80,7 @@
         <p-button class="!ml-auto"
                   variant="outlined"
                   icon="pi pi-pencil"
-                  rounded raised severity="contrast"
+                  rounded raised severity="secondary"
                   (click)="openEditNodeModal(serverNode.data)"/>
       </td>
 
@@ -118,8 +118,8 @@
   </ng-template>
 
   <ng-template pTemplate="footer">
-    <p-button label="Cancel" icon="pi pi-times" text (click)="closeEditNodeModal()"/>
-    <p-button label="Save" icon="pi pi-check" [disabled]="nodeForm && nodeForm.form.invalid"
+    <p-button label="Cancel" severity="secondary" icon="pi pi-times" text (click)="closeEditNodeModal()"/>
+    <p-button label="Save" severity="success" icon="pi pi-check" [disabled]="nodeForm && nodeForm.form.invalid"
               [loading]="isSavingNode" (click)="saveEditNodeModal()"/>
   </ng-template>
 </p-dialog>
