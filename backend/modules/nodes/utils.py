@@ -2,7 +2,7 @@ from pydantic import TypeAdapter
 
 from libraries import mongo_lib
 from modules.core_enums import DatabaseResponse
-from modules.nodes.models import NodeData
+from modules.nodes.models import NodeData, NodeDataRequest
 
 
 # region { Node }
@@ -19,9 +19,14 @@ def get_node_by_unid(node_unid: str) -> NodeData | None:
     return NodeData.model_validate(node[0])
 
 
-def replace_node(server_node: NodeData) -> DatabaseResponse:
-    result = mongo_lib.nodes.replace_one({'node_unid': server_node.node_unid}, server_node.model_dump(), upsert=True)
-    return DatabaseResponse.CREATED if result.did_upsert else DatabaseResponse.UPDATED
+def replace_node(server_node: NodeDataRequest) -> DatabaseResponse:
+    is_replacing = server_node.original_node_unid != server_node.node_unid
+    if is_replacing: delete_node(server_node.node_unid)
+
+    result = mongo_lib.nodes.replace_one({'node_unid': server_node.original_node_unid}, server_node.model_dump(), upsert=True)
+    if result.did_upsert: return DatabaseResponse.CREATED
+
+    return DatabaseResponse.REPLACED if is_replacing else DatabaseResponse.UPDATED
 
 
 def update_node(server_node: NodeData) -> DatabaseResponse:

@@ -1,0 +1,11 @@
+:host {
+  > div {
+    overflow-y: auto;
+    max-height: 310px;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+  }
+}

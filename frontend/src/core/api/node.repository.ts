@@ -1,6 +1,6 @@
 import {Inject, Injectable} from "@angular/core";
 import {BackendService, DatabaseResponse} from "../services/backend.service";
-import {NodeData} from '../../components/node/node-form/node-form.component';
+import {NodeData, NodeDataRequest} from '../../components/node/node-form/node-form.component';
 
 @Injectable()
 export class NodeRepository {
@@ -16,12 +16,13 @@ export class NodeRepository {
     return await this.backend.get(`/node/${node_unid}`);
   }
 
-  async updateNode(serverNode: NodeData): Promise<[DatabaseResponse, any]> {
-    const result = await this.backend.post('/node/update', serverNode);
+  async updateNode(serverNode: NodeDataRequest): Promise<[DatabaseResponse, any]> {
+    const result = await this.backend.post('/node', serverNode);
     return [result.status, result]
   }
 
-  async deleteNode(node_unid: string): Promise<DatabaseResponse> {
-    return await this.backend.delete('/node', node_unid);
+  async deleteNode(node_unid: string): Promise<[DatabaseResponse, any]> {
+    const result = await this.backend.delete('/node', node_unid);
+    return [result.status, result]
   }
 }

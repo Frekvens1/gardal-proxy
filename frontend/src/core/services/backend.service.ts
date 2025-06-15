@@ -3,6 +3,7 @@ import {Injectable} from "@angular/core";
 export enum DatabaseResponse {
   CREATED = 'CREATED',
   UPDATED = 'UPDATED',
+  REPLACED = 'REPLACED',
   ERROR = 'ERROR',
   DELETED = 'DELETED',
 }

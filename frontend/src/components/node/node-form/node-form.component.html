@@ -1,52 +1,58 @@
-<p-toast/>
-<p-panel header="Add traefik node">
-  <form [formGroup]="nodeForm" class="panel-body flex flex-col gap-6">
-    <!-- Controls -->
-    <div class="flex flex-col items-center gap-2">
-      <p-inputgroup>
-        <p-inputgroup-addon>
-          <i class="pi pi-tag"></i>
-        </p-inputgroup-addon>
-        <input pInputText required
-               placeholder="ID"
-               [formControl]="nodeForm.controls.node_unid"/>
-      </p-inputgroup>
+<form class="flex flex-col items-center gap-2" [formGroup]="form">
+  <p-inputgroup>
+    <p-inputgroup-addon>
+      <i class="pi pi-tag"></i>
+    </p-inputgroup-addon>
 
-      <p-inputgroup>
-        <p-inputgroup-addon>
-          <i class="pi pi-globe"></i>
-        </p-inputgroup-addon>
-        <p-select [options]="nodeProtocolsList"
-                  placeholder="Select a protocol"
-                  [formControl]="nodeForm.controls.protocol"/>
-        <input pInputText required
-               placeholder="Hostname"
-               [formControl]="nodeForm.controls.ip"/>
-        <p-inputgroup-addon>:</p-inputgroup-addon>
-        <p-inputnumber required
-                       inputId="minmax"
-                       placeholder="Port"
-                       [min]="0"
-                       [max]="65535"
-                       [useGrouping]="false"
-                       [formControl]="nodeForm.controls.port">
-        </p-inputnumber>
-        <p-inputgroup-addon>/</p-inputgroup-addon>
-        <input pInputText
-               placeholder="Path"
-               [formControl]="nodeForm.controls.path"/>
-      </p-inputgroup>
-    </div>
 
-    <!-- Actions -->
-    <div class="flex">
-      <p-button class="w-full"
-                styleClass="w-full"
-                label="Update"
-                severity="success"
-                [raised]="true"
-                [disabled]="nodeForm.invalid"
-                (click)="addNode(nodeForm)"/>
-    </div>
-  </form>
-</p-panel>
+    <p-iftalabel>
+      <input pInputText id="node_unid" [pKeyFilter]="idSafe" [formControl]="form.controls.node_unid"/>
+      <label for="node_unid">ID</label>
+    </p-iftalabel>
+  </p-inputgroup>
+
+  <p-inputgroup>
+
+    <p-inputgroup-addon>
+      <i class="pi pi-globe"></i>
+    </p-inputgroup-addon>
+
+    <p-iftalabel  class="max-w-28">
+      @if (parentElement) {
+        <p-select id="protocol"
+                  [appendTo]="parentElement"
+                  [options]="nodeProtocolsList"
+                  [formControl]="form.controls.protocol"/>
+      } @else {
+        <p-select id="protocol"
+                  [options]="nodeProtocolsList"
+                  [formControl]="form.controls.protocol"/>
+      }
+      <label for="protocol">Protocol</label>
+    </p-iftalabel>
+
+    <p-iftalabel>
+      <input pInputText id="hostname" [pKeyFilter]="hostnameSafe" [formControl]="form.controls.hostname"/>
+      <label for="hostname">Hostname</label>
+    </p-iftalabel>
+
+    <p-inputgroup-addon>:</p-inputgroup-addon>
+    <p-iftalabel class="max-w-20">
+      <p-inputnumber required id="port"
+                     inputId="minmax"
+                     placeholder="Port"
+                     [min]="0"
+                     [max]="65535"
+                     [useGrouping]="false"
+                     [formControl]="form.controls.port">
+      </p-inputnumber>
+      <label for="port">Port</label>
+    </p-iftalabel>
+    <p-inputgroup-addon>/</p-inputgroup-addon>
+    <p-iftalabel>
+      <input pInputText id="path" [pKeyFilter]="pathSafe" [formControl]="form.controls.path"/>
+      <label for="path">Path</label>
+    </p-iftalabel>
+  </p-inputgroup>
+</form>
+

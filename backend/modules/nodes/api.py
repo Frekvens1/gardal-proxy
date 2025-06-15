@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
 
 from modules.core_models import Unid
-from modules.nodes.models import NodeData
+from modules.nodes.models import NodeData, NodeDataRequest
 from modules.nodes.utils import get_node_by_unid, delete_node, get_nodes, replace_node
 
 
@@ -25,8 +25,8 @@ def initialize(app: FastAPI):
         """
         return get_node_by_unid(node_unid)
 
-    @app.post("/node/update")
-    async def app_post_user_update(node_data: NodeData) -> JSONResponse:
+    @app.post("/node")
+    async def app_post_node_update(node_data: NodeDataRequest) -> JSONResponse:
         """
         :param node_data: NodeData to update or create node
         :return: {status: DatabaseResponse}
@@ -36,8 +36,8 @@ def initialize(app: FastAPI):
             'status': replace_node(node_data)
         }))
 
-    @app.delete("/user/delete")
-    async def app_post_user_delete(node_unid: Unid) -> JSONResponse:
+    @app.delete("/node")
+    async def app_post_node_delete(node_unid: Unid) -> JSONResponse:
         """
         :param node_unid: unid for node
         :return: {status: DatabaseResponse}

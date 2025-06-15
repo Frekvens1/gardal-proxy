@@ -1,0 +1,127 @@
+<p-table [value]="rows || []"
+         [scrollable]="true"
+         [resizableColumns]="true"
+         [scrollHeight]="'2000'"
+         [responsiveLayout]="'scroll'"
+         [tableStyle]="{'min-width': '70rem'}"
+         sortField="data.node_unid" sortMode="multiple" dataKey="data.node_unid"
+         rowGroupMode="subheader" groupRowsBy="data.node_unid">
+  <ng-template pTemplate="caption">
+    <div class="flex items-center gap-5">
+      <span class="text-xl font-bold">Traefik nodes</span>
+      <p-button label="Node" variant="outlined"
+                icon="pi pi-plus" severity="contrast"
+                (onClick)="openEditNodeModal()"/>
+      <p-button class="ml-auto"
+                icon="pi pi-refresh" variant="outlined"
+                rounded raised severity="contrast"
+                [loading]="isRefreshingRows"
+                (click)="refreshRows()"/>
+    </div>
+  </ng-template>
+  <ng-template pTemplate="header">
+    <tr>
+      <th></th>
+      @for (column of columns; track $index) {
+        @if ($first) {
+          <th [pSortableColumn]="column.field"
+              pFrozenColumn pResizableColumn>
+            {{ column.header }}
+            <p-sortIcon [field]="column.field"/>
+          </th>
+
+        } @else {
+          <th [pSortableColumn]="column.field" pResizableColumn>
+            {{ column.header }}
+            <p-sortIcon [field]="column.field"/>
+          </th>
+        }
+      }
+      <th alignFrozen="right" pFrozenColumn></th>
+      <th alignFrozen="right" pFrozenColumn></th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-serverNode let-rowIndex="rowIndex" let-expanded="expanded">
+    <tr>
+      <td>
+        @if (serverNode.hostnames?.all?.length > 0) {
+          <p-button type="button" pButtonIcon pRipple variant="text" severity="contrast"
+                    [pRowToggler]="serverNode" rounded>
+            @if (expanded) {
+              <ChevronDownIcon pButtonIcon/>
+            } @else {
+              <ChevronRightIcon pButtonIcon/>
+            }
+          </p-button>
+
+          <div class="flex flex-col gap-2 pl-3">
+            @if (serverNode.hostnames?.active?.length > 0) {
+              <p-badge class="w-full" severity="success" value=" {{serverNode.hostnames?.active?.length}} "/>
+            }
+
+            @if ((serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length) > 0) {
+              <p-badge class="w-full" severity="warn" value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
+            }
+          </div>
+        } @else {
+          <div class="pl-3">
+            <p-badge class="w-full" severity="info" value=" 0 "/>
+          </div>
+        }
+      </td>
+
+      @for (column of columns; track $index) {
+        <td>
+          {{ serverNode.data[column.field] }}
+        </td>
+      }
+
+      <td class="!text-right">
+        <p-button class="!ml-auto"
+                  variant="outlined"
+                  icon="pi pi-pencil"
+                  rounded raised severity="contrast"
+                  (click)="openEditNodeModal(serverNode.data)"/>
+      </td>
+
+      <td class="!text-right">
+        <p-button class="!ml-auto"
+                  icon="pi pi-trash"
+                  rounded raised severity="danger"
+                  [loading]="isDeletingNode[serverNode.data.node_unid]"
+                  (click)="deleteNode(serverNode)"/>
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="expandedrow" let-serverNode>
+    @for (hostname of serverNode.hostnames.all; track $index) {
+      <tr>
+        <td [attr.colspan]="columns.length + 3">
+            <span class="flex gap-2.5 pl-3">
+              @if (serverNode.hostnames.active.includes(hostname)) {
+                <p-tag value="Active" severity="success"/>
+              } @else {
+                <p-tag value="Duplicate" severity="warn"/>
+              }
+              {{ hostname }}
+            </span>
+        </td>
+      </tr>
+    }
+  </ng-template>
+</p-table>
+
+<p-dialog #nodeDataEditDialog class="w-3xl" [header]="`${nodeDataEdit ? 'Update' : 'Add'} traefik node`"
+          [(visible)]="showEditNodeModal" [modal]="true">
+  <ng-template pTemplate="content">
+    <node-form [parentElement]="nodeDataEditDialog" [nodeData]="nodeDataEdit" #nodeForm/>
+  </ng-template>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" icon="pi pi-times" text (click)="closeEditNodeModal()"/>
+    <p-button label="Save" icon="pi pi-check" [disabled]="nodeForm && nodeForm.form.invalid"
+              [loading]="isSavingNode" (click)="saveEditNodeModal()"/>
+  </ng-template>
+</p-dialog>
+
+<delete-modal #deleteModalComponent/>

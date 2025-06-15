@@ -1,8 +1,10 @@
-<div class="content flex flex-col gap-10 m-10">
-  <h1 class="text-4xl font-extrabold">Dashboard</h1>
+<div class="flex justify-center m-20 min-h-full">
+  <p-card>
+    <div class="content flex flex-col align-center gap-10 p-10">
+      <h1 class="text-4xl font-extrabold dark:text-white">Dashboard</h1>
 
-  <div class="api-actions flex gap-6">
-    <node-form (onSuccess)="onNodeChange($event)" />
-  </div>
+      <node-grid [onNodeChange]="nodeChangeEmitter"/>
 
+    </div>
+  </p-card>
 </div>
