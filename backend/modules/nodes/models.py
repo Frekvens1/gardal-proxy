@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 
 
-class ServerNode(BaseModel):
+class NodeData(BaseModel):
     node_unid: str
+    protocol: str
     ip: str
     port: int
+    path: str

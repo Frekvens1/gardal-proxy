@@ -27,7 +27,7 @@ async def get_traefik_config():
     traefik_config = {}
     current_hostnames = []
     for server in nodes_utils.get_nodes():
-        raw_config = utils.fetch_url(f'http://{server.ip}:{server.port}/api/rawdata')
+        raw_config = utils.fetch_url(f'{server.protocol}{server.ip}:{server.port}/{server.path}')
         hostnames = utils.get_domain_names_from_traefik_config(raw_config)
         traefik_config = traefik_lib.build_config(
             unid=server.node_unid,

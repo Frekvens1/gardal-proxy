@@ -1,35 +1,36 @@
-from typing import List
-
 from pydantic import TypeAdapter
 
 from libraries import mongo_lib
-from modules.nodes.models import ServerNode
+from modules.core_enums import DatabaseResponse
+from modules.nodes.models import NodeData
 
 
 # region { Node }
 
-def get_nodes() -> list[ServerNode]:
+def get_nodes() -> list[NodeData]:
     server_nodes = list(mongo_lib.nodes.find({}, {'_id': False}))
-    return TypeAdapter(list[ServerNode]).validate_python(server_nodes)
+    return TypeAdapter(list[NodeData]).validate_python(server_nodes)
 
 
-def get_node_by_unid(node_unid: str) -> ServerNode | None:
+def get_node_by_unid(node_unid: str) -> NodeData | None:
     node = list(mongo_lib.nodes.find({'node_unid': node_unid}))
     if len(node) == 0:
         return None
-    return ServerNode.model_validate(node[0])
+    return NodeData.model_validate(node[0])
 
-def replace_node(server_node: ServerNode) -> bool:
-    mongo_lib.nodes.replace_one({'node_unid': server_node.node_unid}, server_node.model_dump(), upsert=True)
-    return True
 
-def update_node(server_node: ServerNode) -> bool:
+def replace_node(server_node: NodeData) -> DatabaseResponse:
+    result = mongo_lib.nodes.replace_one({'node_unid': server_node.node_unid}, server_node.model_dump(), upsert=True)
+    return DatabaseResponse.CREATED if result.did_upsert else DatabaseResponse.UPDATED
+
+
+def update_node(server_node: NodeData) -> DatabaseResponse:
     mongo_lib.nodes.update_one({'node_unid': server_node.node_unid}, server_node.model_dump())
-    return True
+    return DatabaseResponse.UPDATED
 
 
-def delete_node(node_unid: str) -> bool:
+def delete_node(node_unid: str) -> DatabaseResponse:
     mongo_lib.nodes.delete_one({'node_unid': node_unid})
-    return True
+    return DatabaseResponse.DELETED
 
 # endregion

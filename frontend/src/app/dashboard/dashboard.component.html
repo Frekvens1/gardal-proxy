@@ -1,7 +1,8 @@
-<h1>Dashboard</h1>
+<div class="content flex flex-col gap-10 m-10">
+  <h1 class="text-4xl font-extrabold">Dashboard</h1>
 
-<host-add>
+  <div class="api-actions flex gap-6">
+    <node-form (onSuccess)="onNodeChange($event)" />
+  </div>
 
-</host-add>
-
-<p-button label="Create nodes" (click)="createNode()"/>
+</div>

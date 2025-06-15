@@ -1,5 +1,11 @@
 import {Injectable} from "@angular/core";
 
+export enum DatabaseResponse {
+  CREATED = 'CREATED',
+  UPDATED = 'UPDATED',
+  ERROR = 'ERROR',
+  DELETED = 'DELETED',
+}
 
 @Injectable()
 export class BackendService {

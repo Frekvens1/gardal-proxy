@@ -1,5 +1,6 @@
 import {Inject, Injectable} from "@angular/core";
-import {BackendService} from "../services/backend.service";
+import {BackendService, DatabaseResponse} from "../services/backend.service";
+import {NodeData} from '../../components/node/node-form/node-form.component';
 
 @Injectable()
 export class NodeRepository {
@@ -7,23 +8,20 @@ export class NodeRepository {
   constructor(@Inject (BackendService) private backend: BackendService) {
   }
 
-  async getNodes() {
+  async getNodes(): Promise<NodeData[]> {
     return await this.backend.get('/nodes');
   }
 
-  async getNode(nodeUnid: string) {
-    return await this.backend.get(`/node/${nodeUnid}`);
+  async getNode(node_unid: string): Promise<NodeData> {
+    return await this.backend.get(`/node/${node_unid}`);
   }
 
-  async updateNode(serverNode: {nodeUnid: string, ip: string, port: number}) {
-    return await this.backend.post('/node/update', {
-      node_unid: serverNode.nodeUnid,
-      ip: serverNode.ip,
-      port: serverNode.port
-    });
+  async updateNode(serverNode: NodeData): Promise<[DatabaseResponse, any]> {
+    const result = await this.backend.post('/node/update', serverNode);
+    return [result.status, result]
   }
 
-  async deleteNode(nodeUnid: string) {
-    return await this.backend.delete('/node', nodeUnid);
+  async deleteNode(node_unid: string): Promise<DatabaseResponse> {
+    return await this.backend.delete('/node', node_unid);
   }
 }
