@@ -1,7 +1,7 @@
 import {Component, EventEmitter, OnInit} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {DatabaseResponse} from '../../core/services/backend.service';
-import {NodeData, NodeDataRequest} from '../../components/node/node-form/node-form.component';
+import {NodeDataRequest} from '../../components/node/node-form/node-form.component';
 import {GridView} from '../../components/node/node-grid/node-grid.component';
 import {Card} from 'primeng/card';
 

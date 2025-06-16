@@ -1,3 +1,13 @@
+import re
+
+
+def get_domain_names_from_traefik_config(text: str) -> list:
+    pattern = r'Host.*?\(["\'`](.*?\..*?)["\'`]?\)'
+    matches = re.findall(pattern, text)
+
+    return list(set(matches))
+
+
 def build_config(unid: str, redirect_url: str, hostnames: list, traefik_config: dict, wildcard: bool = False) -> dict:
     if 'http' not in traefik_config: traefik_config['http'] = {}
     if 'routers' not in traefik_config['http']: traefik_config['http']['routers'] = {}

@@ -29,7 +29,7 @@ async def get_traefik_config():
     hostname_list = []
     for server in nodes_utils.get_nodes():
         raw_config = utils.fetch_url(f'{server.protocol.strip()}{server.hostname.strip()}:{server.port}/{server.path.strip()}')
-        hostnames_unfiltered = utils.get_domain_names_from_traefik_config(raw_config)
+        hostnames_unfiltered = traefik_lib.get_domain_names_from_traefik_config(raw_config)
         hostnames_filtered = utils.filter_duplicates(hostname_list, hostnames_unfiltered)
 
         traefik_config = traefik_lib.build_config(

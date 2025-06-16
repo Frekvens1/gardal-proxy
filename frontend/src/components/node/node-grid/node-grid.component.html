@@ -1,9 +1,9 @@
 <p-table [value]="rows || []"
+         [autoLayout]="true"
          [scrollable]="true"
+         [scrollHeight]="height+'px'"
          [resizableColumns]="true"
-         [scrollHeight]="'2000'"
          [responsiveLayout]="'scroll'"
-         [tableStyle]="{'min-width': '70rem'}"
          sortField="data.node_unid" sortMode="multiple" dataKey="data.node_unid"
          rowGroupMode="subheader" groupRowsBy="data.node_unid">
   <ng-template pTemplate="caption">
@@ -22,45 +22,54 @@
   <ng-template pTemplate="header">
     <tr>
       <th></th>
+      <th></th>
       @for (column of columns; track $index) {
         @if ($first) {
           <th [pSortableColumn]="column.field"
-              pFrozenColumn pResizableColumn>
+              pResizableColumn>
             {{ column.header }}
             <p-sortIcon [field]="column.field"/>
           </th>
 
         } @else {
-          <th [pSortableColumn]="column.field" pResizableColumn>
+          <th [pSortableColumn]="column.field"
+              pResizableColumn>
             {{ column.header }}
             <p-sortIcon [field]="column.field"/>
           </th>
         }
       }
-      <th alignFrozen="right" pFrozenColumn></th>
-      <th alignFrozen="right" pFrozenColumn></th>
+      <th></th>
+      <th></th>
     </tr>
   </ng-template>
+  <div class="max-h-[800px] overflow-y-auto overflow-x-auto">
+
+  </div>
   <ng-template pTemplate="body" let-serverNode let-rowIndex="rowIndex" let-expanded="expanded">
     <tr>
       <td>
         @if (serverNode.hostnames?.all?.length > 0) {
-          <p-button type="button" pButtonIcon pRipple variant="text" severity="secondary"
-                    [pRowToggler]="serverNode" rounded>
+          <p-button type="button" styleClass="pr-0" variant="text" severity="secondary"
+                    [pRowToggler]="serverNode" pButtonIcon pRipple rounded>
             @if (expanded) {
               <ChevronDownIcon pButtonIcon/>
             } @else {
               <ChevronRightIcon pButtonIcon/>
             }
           </p-button>
-
+        }
+      </td>
+      <td>
+        @if (serverNode.hostnames?.all?.length > 0) {
           <div class="flex flex-col gap-2 pl-3">
             @if (serverNode.hostnames?.active?.length > 0) {
               <p-badge class="w-full" severity="success" value=" {{serverNode.hostnames?.active?.length}} "/>
             }
 
             @if ((serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length) > 0) {
-              <p-badge class="w-full" severity="warn" value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
+              <p-badge class="w-full" severity="warn"
+                       value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
             }
           </div>
         } @else {
@@ -89,7 +98,7 @@
                   icon="pi pi-trash"
                   rounded raised severity="danger"
                   [loading]="isDeletingNode[serverNode.data.node_unid]"
-                  (click)="deleteNode(serverNode)"/>
+                  (click)="deleteNodeModal(serverNode)"/>
       </td>
     </tr>
   </ng-template>
@@ -97,13 +106,28 @@
     @for (hostname of serverNode.hostnames.all; track $index) {
       <tr>
         <td [attr.colspan]="columns.length + 3">
-            <span class="flex gap-2.5 pl-3">
+            <span class="group flex items-center gap-2.5 pl-3">
               @if (serverNode.hostnames.active.includes(hostname)) {
                 <p-tag value="Active" severity="success"/>
               } @else {
                 <p-tag value="Duplicate" severity="warn"/>
               }
-              {{ hostname }}
+              <a target="_blank"
+                 rel="noopener noreferrer"
+                 class="underline hover:brightness-90"
+                 [href]="'https://'+hostname">
+                {{ hostname }}
+              </a>
+
+              <p-popover #popover>
+                Copied!
+              </p-popover>
+              <p-button class="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        pButtonIcon pRipple size="small"
+                        type="button" icon="pi pi-clipboard"
+                        variant="text" severity="secondary"
+                        (click)="onClipboard(hostname, popover, $event)">
+          </p-button>
             </span>
         </td>
       </tr>
@@ -114,12 +138,16 @@
 <p-dialog #nodeDataEditDialog class="w-3xl" [header]="`${nodeDataEdit ? 'Update' : 'Add'} traefik node`"
           [(visible)]="showEditNodeModal" [modal]="true">
   <ng-template pTemplate="content">
-    <node-form [parentElement]="nodeDataEditDialog" [nodeData]="nodeDataEdit" #nodeForm/>
+    <node-form [parentElement]="nodeDataEditDialog"
+               [nodeData]="nodeDataEdit" #nodeForm
+               (onChange)="nodeFormChanged($event)"/>
   </ng-template>
-
   <ng-template pTemplate="footer">
     <p-button label="Cancel" severity="secondary" icon="pi pi-times" text (click)="closeEditNodeModal()"/>
-    <p-button label="Save" severity="success" icon="pi pi-check" [disabled]="nodeForm && nodeForm.form.invalid"
+    <p-button icon="pi pi-check"
+              [label]="isReplacingNode ? 'Replace' : nodeDataEdit ? 'Update' : 'Add'"
+              [severity]="isReplacingNode ? 'warn' : 'success'"
+              [disabled]="nodeForm && nodeForm.form.invalid"
               [loading]="isSavingNode" (click)="saveEditNodeModal()"/>
   </ng-template>
 </p-dialog>

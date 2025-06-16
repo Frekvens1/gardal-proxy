@@ -6,7 +6,12 @@
 
 
     <p-iftalabel>
-      <input pInputText id="node_unid" [pKeyFilter]="idSafe" [formControl]="form.controls.node_unid"/>
+      <input pInputText id="node_unid"
+             [pAutoFocus]="true"
+             [pKeyFilter]="idSafe.input"
+             [formControl]="form.controls.node_unid"
+             (input)="onChangeEvent(form.controls.node_unid)"
+             (paste)="onPaste(form.controls.node_unid, idSafe.paste, $event)"/>
       <label for="node_unid">ID</label>
     </p-iftalabel>
   </p-inputgroup>
@@ -17,22 +22,28 @@
       <i class="pi pi-globe"></i>
     </p-inputgroup-addon>
 
-    <p-iftalabel  class="max-w-28">
+    <p-iftalabel class="min-w-30 max-w-30">
       @if (parentElement) {
         <p-select id="protocol"
                   [appendTo]="parentElement"
                   [options]="nodeProtocolsList"
-                  [formControl]="form.controls.protocol"/>
+                  [formControl]="form.controls.protocol"
+                  (onChange)="onChangeEvent(form.controls.protocol)"/>
       } @else {
         <p-select id="protocol"
                   [options]="nodeProtocolsList"
-                  [formControl]="form.controls.protocol"/>
+                  [formControl]="form.controls.protocol"
+                  (onChange)="onChangeEvent(form.controls.protocol)"/>
       }
       <label for="protocol">Protocol</label>
     </p-iftalabel>
 
     <p-iftalabel>
-      <input pInputText id="hostname" [pKeyFilter]="hostnameSafe" [formControl]="form.controls.hostname"/>
+      <input pInputText id="hostname"
+             [pKeyFilter]="hostnameSafe.input"
+             [formControl]="form.controls.hostname"
+             (input)="onChangeEvent(form.controls.hostname)"
+             (paste)="onPaste(form.controls.hostname, hostnameSafe.paste, $event)"/>
       <label for="hostname">Hostname</label>
     </p-iftalabel>
 
@@ -44,13 +55,18 @@
                      [min]="0"
                      [max]="65535"
                      [useGrouping]="false"
-                     [formControl]="form.controls.port">
+                     [formControl]="form.controls.port"
+                     (onInput)="onChangeEvent(form.controls.port)">
       </p-inputnumber>
       <label for="port">Port</label>
     </p-iftalabel>
     <p-inputgroup-addon>/</p-inputgroup-addon>
     <p-iftalabel>
-      <input pInputText id="path" [pKeyFilter]="pathSafe" [formControl]="form.controls.path"/>
+      <input pInputText id="path"
+             [pKeyFilter]="pathSafe.input"
+             [formControl]="form.controls.path"
+             (input)="onChangeEvent(form.controls.path)"
+             (paste)="onPaste(form.controls.path, pathSafe.paste, $event)"/>
       <label for="path">Path</label>
     </p-iftalabel>
   </p-inputgroup>
