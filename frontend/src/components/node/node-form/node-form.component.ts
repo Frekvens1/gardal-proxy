@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output} from "@angular/core";
+import {Component, EventEmitter, Inject, Input, OnInit, Output} from "@angular/core";
 import {InputGroup} from 'primeng/inputgroup';
 import {InputGroupAddon} from 'primeng/inputgroupaddon';
 import {InputText} from 'primeng/inputtext';
@@ -11,6 +11,8 @@ import {DatabaseResponse} from '../../../core/services/backend.service';
 import {IftaLabel} from 'primeng/iftalabel';
 import {KeyFilter} from 'primeng/keyfilter';
 import {AutoFocus} from 'primeng/autofocus';
+import {UserAgentService} from '../../../core/services/user-agent.service';
+import {NgClass} from '@angular/common';
 
 
 export interface NodeFormGroup {
@@ -49,7 +51,8 @@ export const nodeProtocolsList: nodeProtocols[] = ['http://', 'https://'];
     Select,
     IftaLabel,
     KeyFilter,
-    AutoFocus
+    AutoFocus,
+    NgClass,
   ],
   providers: [
     NodeRepository,
@@ -74,9 +77,9 @@ export class NodeFormComponent implements OnInit {
   @Output() onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]> = new EventEmitter();
   @Output() onChange: EventEmitter<[string, FormControl]> = new EventEmitter();
 
-  idSafe = {input: /^[a-zA-Z0-9-]*$/g, paste: /[^a-zA-Z0-9-]/g};
-  hostnameSafe = {input: /^[a-zA-Z0-9.]*$/g, paste: /[^a-zA-Z0-9.]/g};
-  pathSafe = {input: /^[a-zA-Z0-9/_-]*$/g, paste: /[^a-zA-Z0-9/_-]/g};
+  idSafe = {input: /^[a-zA-Z0-9-]*$/, paste: /[^a-zA-Z0-9-]/g};
+  hostnameSafe = {input: /^[a-zA-Z0-9.]*$/, paste: /[^a-zA-Z0-9.]/g};
+  pathSafe = {input: /^[a-zA-Z0-9/_-]*$/, paste: /[^a-zA-Z0-9/_-]/g};
 
   isUpdating: boolean = false;
 
@@ -88,10 +91,16 @@ export class NodeFormComponent implements OnInit {
     path: new FormControl<string>(this.path, {nonNullable: true}),
   });
 
-  constructor() {
+  constructor(@Inject(UserAgentService) private userAgentService: UserAgentService) {
   }
 
+  @Input() nodeUnidExists: boolean = false;
+
+  largeScreen: boolean = false;
+
   ngOnInit(): void {
+    this.largeScreen = !this.userAgentService.lg();
+
     if (this.nodeData) {
       this.isUpdating = true;
       const data = this.nodeData;

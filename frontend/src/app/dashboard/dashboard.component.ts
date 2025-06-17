@@ -20,6 +20,7 @@ import {Card} from 'primeng/card';
 
 export class DashboardComponent implements OnInit {
 
+  height: number = 0;
   nodeChangeEmitter = new EventEmitter<[DatabaseResponse, NodeDataRequest]>();
 
 
@@ -28,6 +29,6 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-
+    this.height = window.innerHeight * 0.71;
   }
 }

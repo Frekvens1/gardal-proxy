@@ -3,6 +3,7 @@ import {RouterOutlet} from '@angular/router';
 import {BackendService} from '../core/services/backend.service';
 import {Toast} from 'primeng/toast';
 import {MessageService} from 'primeng/api';
+import {UserAgentService} from '../core/services/user-agent.service';
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,8 @@ import {MessageService} from 'primeng/api';
   ],
   providers: [
     BackendService,
-    MessageService
+    UserAgentService,
+    MessageService,
   ],
 })
 export class AppComponent {

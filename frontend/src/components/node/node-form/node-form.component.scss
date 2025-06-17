@@ -1,3 +1,11 @@
 :host {
+  .warning-input {
+    input {
+      border-color: var(--p-orange-400);
+    }
 
+    label {
+      color: var(--p-orange-400);
+    }
+  }
 }

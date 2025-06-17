@@ -1,11 +1,15 @@
-<form class="flex flex-col items-center gap-2" [formGroup]="form">
+<form class="flex flex-col gap-2.5 w-xs 3xs:w-md sm:w-md md:w-lg lg:w-2xl" [formGroup]="form">
+
+  <!-- region { nodeUnid } -->
+
   <p-inputgroup>
-    <p-inputgroup-addon>
-      <i class="pi pi-tag"></i>
-    </p-inputgroup-addon>
+    @if (!largeScreen) {
+      <p-inputgroup-addon>
+        <i class="pi pi-tag"></i>
+      </p-inputgroup-addon>
+    }
 
-
-    <p-iftalabel>
+    <p-iftalabel [ngClass]="{'warning-input': nodeUnidExists}">
       <input pInputText id="node_unid"
              [pAutoFocus]="true"
              [pKeyFilter]="idSafe.input"
@@ -16,21 +20,79 @@
     </p-iftalabel>
   </p-inputgroup>
 
-  <p-inputgroup>
+  <!-- endregion -->
+  <!-- region { configUrl } -->
 
-    <p-inputgroup-addon>
-      <i class="pi pi-globe"></i>
-    </p-inputgroup-addon>
+  <span class="font-bold mt-4">Config URL</span>
 
-    <p-iftalabel class="min-w-30 max-w-30">
+  @if (!largeScreen) {
+
+    <p-inputgroup>
+      <p-inputgroup-addon>
+        <i class="pi pi-globe"></i>
+      </p-inputgroup-addon>
+
+      <p-iftalabel class="min-w-30 max-w-30">
+        @if (parentElement) {
+          <p-select id="protocol"
+                    [appendTo]="parentElement"
+                    [options]="nodeProtocolsList"
+                    [formControl]="form.controls.protocol"
+                    (onChange)="onChangeEvent(form.controls.protocol)"/>
+        } @else {
+          <p-select id="protocol"
+                    [options]="nodeProtocolsList"
+                    [formControl]="form.controls.protocol"
+                    (onChange)="onChangeEvent(form.controls.protocol)"/>
+        }
+        <label for="protocol">Protocol</label>
+      </p-iftalabel>
+
+      <p-iftalabel>
+        <input pInputText id="hostname"
+               [pKeyFilter]="hostnameSafe.input"
+               [formControl]="form.controls.hostname"
+               (input)="onChangeEvent(form.controls.hostname)"
+               (paste)="onPaste(form.controls.hostname, hostnameSafe.paste, $event)"/>
+        <label for="hostname">Hostname</label>
+      </p-iftalabel>
+
+      <p-inputgroup-addon>:</p-inputgroup-addon>
+
+      <p-iftalabel class="max-w-20">
+        <p-inputnumber required id="port"
+                       inputId="minmax"
+                       placeholder="Port"
+                       [min]="0"
+                       [max]="65535"
+                       [useGrouping]="false"
+                       [formControl]="form.controls.port"
+                       (onInput)="onChangeEvent(form.controls.port)">
+        </p-inputnumber>
+        <label for="port">Port</label>
+      </p-iftalabel>
+
+      <p-inputgroup-addon>/</p-inputgroup-addon>
+
+      <p-iftalabel>
+        <input pInputText id="path"
+               [pKeyFilter]="pathSafe.input"
+               [formControl]="form.controls.path"
+               (input)="onChangeEvent(form.controls.path)"
+               (paste)="onPaste(form.controls.path, pathSafe.paste, $event)"/>
+        <label for="path">Path</label>
+      </p-iftalabel>
+    </p-inputgroup>
+  } @else {
+    <p-iftalabel>
       @if (parentElement) {
-        <p-select id="protocol"
+        <p-select id="protocol" class="w-full"
                   [appendTo]="parentElement"
                   [options]="nodeProtocolsList"
                   [formControl]="form.controls.protocol"
                   (onChange)="onChangeEvent(form.controls.protocol)"/>
       } @else {
-        <p-select id="protocol"
+        <p-select id="protocol" class="w-full"
                   [options]="nodeProtocolsList"
                   [formControl]="form.controls.protocol"
                   (onChange)="onChangeEvent(form.controls.protocol)"/>
@@ -39,7 +101,7 @@
     </p-iftalabel>
 
     <p-iftalabel>
-      <input pInputText id="hostname"
+      <input pInputText id="hostname" class="w-full"
              [pKeyFilter]="hostnameSafe.input"
              [formControl]="form.controls.hostname"
              (input)="onChangeEvent(form.controls.hostname)"
@@ -47,9 +109,9 @@
       <label for="hostname">Hostname</label>
     </p-iftalabel>
 
-    <p-inputgroup-addon>:</p-inputgroup-addon>
-    <p-iftalabel class="max-w-20">
-      <p-inputnumber required id="port"
+    <p-iftalabel>
+      <p-inputnumber class="w-full"
+                     required id="port"
                      inputId="minmax"
                      placeholder="Port"
                      [min]="0"
@@ -60,15 +122,20 @@
       </p-inputnumber>
       <label for="port">Port</label>
     </p-iftalabel>
-    <p-inputgroup-addon>/</p-inputgroup-addon>
+
     <p-iftalabel>
-      <input pInputText id="path"
+      <input class="w-full"
+             pInputText id="path"
              [pKeyFilter]="pathSafe.input"
              [formControl]="form.controls.path"
              (input)="onChangeEvent(form.controls.path)"
              (paste)="onPaste(form.controls.path, pathSafe.paste, $event)"/>
       <label for="path">Path</label>
     </p-iftalabel>
-  </p-inputgroup>
-</form>
+  }
+  <!-- endregion -->
+  <!-- region { redirectUrl } -->
 
+  <!-- endregion -->
+
+</form>

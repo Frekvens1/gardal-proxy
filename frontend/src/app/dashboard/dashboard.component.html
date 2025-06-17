@@ -1,9 +1,9 @@
-<div class="flex lg:justify-center lg:m-20">
+<div class="xl:flex xl:justify-center xl:m-20">
   <p-card>
-    <div class="content flex flex-col align-center gap-10 lg-p-10 lg:min-w-[70rem]">
+    <div class="content flex flex-col align-center gap-10 lg-p-10 xl:min-w-[70rem]">
       <h1 class="text-4xl font-extrabold dark:text-white">Dashboard</h1>
 
-      <node-grid [height]="800" [onNodeChange]="nodeChangeEmitter"/>
+      <node-grid [scrollHeight]="height" [onNodeChange]="nodeChangeEmitter"/>
 
     </div>
   </p-card>

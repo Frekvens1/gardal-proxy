@@ -20,6 +20,7 @@ def get_node_by_unid(node_unid: str) -> NodeData | None:
 
 
 def replace_node(server_node: NodeDataRequest) -> DatabaseResponse:
+    server_node.path = server_node.path.lstrip('/')
     is_replacing = server_node.original_node_unid != server_node.node_unid
     if is_replacing: delete_node(server_node.node_unid)
 

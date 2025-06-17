@@ -23,6 +23,8 @@ export class NodeFormService {
       path: nodeForm.controls.path.value,
     }
 
+    nodeData.path = nodeData.path.replace(/^\/+/, '');
+
     let hasError = false;
     await this.nodeRepository.updateNode(nodeData).then(([response, data]) => {
       switch (response) {

@@ -1,7 +1,7 @@
 <p-table [value]="rows || []"
          [autoLayout]="true"
          [scrollable]="true"
-         [scrollHeight]="height+'px'"
+         [scrollHeight]="scrollHeight+'px'"
          [resizableColumns]="true"
          [responsiveLayout]="'scroll'"
          sortField="data.node_unid" sortMode="multiple" dataKey="data.node_unid"
@@ -20,9 +20,8 @@
     </div>
   </ng-template>
   <ng-template pTemplate="header">
-    <tr>
-      <th></th>
-      <th></th>
+    <tr #headerElement>
+      <th class="p-frozen-column frozen-left"></th>
       @for (column of columns; track $index) {
         @if ($first) {
           <th [pSortableColumn]="column.field"
@@ -39,30 +38,29 @@
           </th>
         }
       }
-      <th></th>
+      <th class="p-frozen-column frozen-right"></th>
       <th></th>
     </tr>
   </ng-template>
-  <div class="max-h-[800px] overflow-y-auto overflow-x-auto">
-
-  </div>
   <ng-template pTemplate="body" let-serverNode let-rowIndex="rowIndex" let-expanded="expanded">
-    <tr>
-      <td>
-        @if (serverNode.hostnames?.all?.length > 0) {
-          <p-button type="button" styleClass="pr-0" variant="text" severity="secondary"
-                    [pRowToggler]="serverNode" pButtonIcon pRipple rounded>
+    <tr #rowElement [ngClass]="{'p-frozen-row': expanded}" [style.top.px]="headerOffset">
+      <td class="p-frozen-column frozen-left">
+        <div class="flex items-center">
+          <p-button pButtonIcon pRipple type="button"
+                    styleClass="pr-0" variant="text"
+                    [pRowToggler]="serverNode" severity="secondary"
+                    [ngClass]="{
+                      'opacity-0': !(serverNode.hostnames?.all?.length > 0),
+                      'pointer-events-none': !(serverNode.hostnames?.all?.length > 0),
+                    }">
             @if (expanded) {
               <ChevronDownIcon pButtonIcon/>
             } @else {
               <ChevronRightIcon pButtonIcon/>
             }
           </p-button>
-        }
-      </td>
-      <td>
-        @if (serverNode.hostnames?.all?.length > 0) {
-          <div class="flex flex-col gap-2 pl-3">
+
+          <div class="flex flex-col gap-2">
             @if (serverNode.hostnames?.active?.length > 0) {
               <p-badge class="w-full" severity="success" value=" {{serverNode.hostnames?.active?.length}} "/>
             }
@@ -71,12 +69,12 @@
               <p-badge class="w-full" severity="warn"
                        value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
             }
+
+            @if (!serverNode.hostnames?.all?.length) {
+              <p-badge class="w-full" severity="info" value=" 0 "/>
+            }
           </div>
-        } @else {
-          <div class="pl-3">
-            <p-badge class="w-full" severity="info" value=" 0 "/>
-          </div>
-        }
+        </div>
       </td>
 
       @for (column of columns; track $index) {
@@ -85,7 +83,7 @@
         </td>
       }
 
-      <td class="!text-right">
+      <td class="!text-right p-frozen-column frozen-right">
         <p-button class="!ml-auto"
                   variant="outlined"
                   icon="pi pi-pencil"
@@ -103,10 +101,53 @@
     </tr>
   </ng-template>
   <ng-template pTemplate="expandedrow" let-serverNode>
+    <p-popover #popover>
+      Copied!
+    </p-popover>
+
+    <tr class="p-frozen-row" [style.top.px]="rowOffset">
+      <td [attr.colspan]="columns.length + 3">
+        <span class="flex flex-col gap-2.5">
+          <div class="group flex items-center gap-2.5">
+            <p-tag severity="secondary" value="Config URL"/>
+            <a target="_blank"
+               rel="noopener noreferrer"
+               class="underline hover:brightness-90"
+               [href]="serverNode.config_url">
+                {{ serverNode.config_url }}
+              </a>
+            <p-button class="opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      pButtonIcon pRipple size="small"
+                      type="button" icon="pi pi-clipboard"
+                      variant="text" severity="secondary"
+                      (click)="onClipboard(serverNode.config_url, popover, $event)">
+            </p-button>
+          </div>
+
+          <!-- TODO: Implement redirect_url
+          <div class="group flex items-center gap-2.5">
+            <p-tag severity="secondary" value="Redirect URL"/>
+            <a target="_blank"
+               rel="noopener noreferrer"
+               class="underline hover:brightness-90"
+               [href]="serverNode.redirect_url">
+                {{ serverNode.redirect_url }}
+              </a>
+            <p-button class="opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      pButtonIcon pRipple size="small"
+                      type="button" icon="pi pi-clipboard"
+                      variant="text" severity="secondary"
+                      (click)="onClipboard(serverNode.redirect_url, popover, $event)">
+            </p-button>
+          </div>
+          -->
+        </span>
+      </td>
+    </tr>
     @for (hostname of serverNode.hostnames.all; track $index) {
       <tr>
         <td [attr.colspan]="columns.length + 3">
-            <span class="group flex items-center gap-2.5 pl-3">
+            <span class="group flex items-center gap-2.5">
               @if (serverNode.hostnames.active.includes(hostname)) {
                 <p-tag value="Active" severity="success"/>
               } @else {
@@ -118,16 +159,12 @@
                  [href]="'https://'+hostname">
                 {{ hostname }}
               </a>
-
-              <p-popover #popover>
-                Copied!
-              </p-popover>
-              <p-button class="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              <p-button class="opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                         pButtonIcon pRipple size="small"
                         type="button" icon="pi pi-clipboard"
                         variant="text" severity="secondary"
                         (click)="onClipboard(hostname, popover, $event)">
-          </p-button>
+              </p-button>
             </span>
         </td>
       </tr>
@@ -135,10 +172,11 @@
   </ng-template>
 </p-table>
 
-<p-dialog #nodeDataEditDialog class="w-3xl" [header]="`${nodeDataEdit ? 'Update' : 'Add'} traefik node`"
+<p-dialog #nodeDataEditDialog [header]="`${nodeDataEdit ? 'Update' : 'Add'} traefik node`"
           [(visible)]="showEditNodeModal" [modal]="true">
   <ng-template pTemplate="content">
-    <node-form [parentElement]="nodeDataEditDialog"
+    <node-form [nodeUnidExists]="isReplacingNode"
+               [parentElement]="nodeDataEditDialog"
                [nodeData]="nodeDataEdit" #nodeForm
                (onChange)="nodeFormChanged($event)"/>
   </ng-template>

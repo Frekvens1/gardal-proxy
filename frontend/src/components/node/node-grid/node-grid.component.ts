@@ -1,5 +1,5 @@
-import {Component, EventEmitter, Inject, Input, OnInit, ViewChild} from "@angular/core";
-import {TableModule} from 'primeng/table';
+import {AfterViewInit, Component, ElementRef, EventEmitter, Inject, Input, OnInit, ViewChild} from "@angular/core";
+import {Table, TableModule, TableService} from 'primeng/table';
 import {NodeData, NodeDataRequest, NodeFormComponent} from '../node-form/node-form.component';
 import {NodeRepository} from '../../../core/api/node.repository';
 import {Button, ButtonIcon} from 'primeng/button';
@@ -17,6 +17,8 @@ import {Badge} from 'primeng/badge';
 import {FormControl} from '@angular/forms';
 import {Clipboard} from '@angular/cdk/clipboard';
 import {Popover} from 'primeng/popover';
+import {NgClass} from '@angular/common';
+import {UserAgentService} from '../../../core/services/user-agent.service';
 
 interface GridColumn {
   field: string;
@@ -26,6 +28,7 @@ interface GridColumn {
 interface GridRow {
   data: NodeData;
   hostnames: HostnameData;
+  config_url: string;
 }
 
 @Component({
@@ -46,12 +49,15 @@ interface GridRow {
     DeleteModalComponent,
     Badge,
     Popover,
+    NgClass,
   ],
   providers: [
     NodeRepository,
     HostRepository,
     NodeFormService,
     ConfirmationService,
+    TableService,
+    Table,
   ]
 })
 
@@ -62,7 +68,10 @@ export class GridView implements OnInit {
               private clipboard: Clipboard) {
   }
 
-  @Input() height: number = 400;
+  @ViewChild('headerElement') headerRef!: ElementRef;
+  @ViewChild('rowElement') rowRef!: ElementRef;
+
+  @Input() scrollHeight: number = 400;
   @Input() onNodeChange: EventEmitter<[DatabaseResponse, NodeDataRequest]> = new EventEmitter();
 
   @ViewChild('nodeForm') nodeForm: NodeFormComponent | undefined;
@@ -96,9 +105,10 @@ export class GridView implements OnInit {
     {field: 'protocol', header: 'Protocol'},
     {field: 'hostname', header: 'Hostname'},
     {field: 'port', header: 'Port'},
-    {field: 'path', header: 'Path'},
   ];
 
+  headerOffset: number = 0;
+  rowOffset: number = 0;
   isRefreshingRows: boolean = false;
 
   refreshRows(): void {
@@ -120,13 +130,20 @@ export class GridView implements OnInit {
     const rowsBuilder: GridRow[] = [];
     if (!nodes) return;
     for (const node of nodes) {
+      const configUrl = `${node.protocol}${node.hostname}:${node.port}/${node.path}`;
       rowsBuilder.push({
         data: node,
         hostnames: hostnames[node.node_unid],
+        config_url: configUrl,
       });
     }
 
     this.rows = rowsBuilder;
+
+    setTimeout(() => {
+      this.headerOffset = this.headerRef?.nativeElement?.offsetHeight - 10 || 0;
+      this.rowOffset = this.headerOffset + this.rowRef?.nativeElement?.offsetHeight - 1 || 0;
+    });
   }
 
   // endregion

@@ -1,6 +1,26 @@
 :host {
-  ::ng-deep .p-datatable-table-container {
-    overflow-y: auto;
-    scrollbar-gutter: stable;
+  ::ng-deep {
+    .p-datatable-table-container, .p-datatable-header {
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+    }
+
+    .p-datatable-scrollable-table > .p-datatable-thead {
+      top: -0.5%;
+    }
+  }
+
+  .p-frozen-column, .p-frozen-row {
+    background: var(--p-datatable-row-background);
+    position: sticky;
+    z-index: 1;
+  }
+
+  .p-frozen-column.frozen-left {
+    left: 0;
+  }
+
+  .p-frozen-column.frozen-right {
+    right: -0.5%;
   }
 }
