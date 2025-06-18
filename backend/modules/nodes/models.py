@@ -34,6 +34,7 @@ class RedirectURLData(BaseModel):
 
 
 class NodeData(BaseModel):
+    priority: int = Field(default=0, description='Lowest has priority')
     name: str = Field(default='Example node', description='Default node name')
     node_slug: Slug
     config_url: ConfigURLData

@@ -4,8 +4,8 @@
          [resizableColumns]="true"
          [scrollHeight]="scrollHeight+'px'"
          [responsiveLayout]="'scroll'"
-         sortField="data.node_slug" sortMode="multiple" dataKey="data.node_slug"
-         rowGroupMode="subheader" groupRowsBy="data.node_slug">
+         rowGroupMode="subheader" sortMode="multiple"
+         sortField="data.node_slug"  dataKey="data.node_slug">
   <ng-template pTemplate="caption">
     <div class="flex items-center gap-5">
       <span class="text-xl font-bold">Traefik nodes</span>
