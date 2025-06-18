@@ -1,42 +1,52 @@
+from typing import List
+
 from pydantic import TypeAdapter
 
 from libraries import mongo_lib
 from modules.core_enums import DatabaseResponse
+from modules.core_models import Slug
 from modules.nodes.models import NodeData, NodeDataRequest
+
+
+def __node_id(slug: Slug) -> dict:
+    return {'node_slug': slug}
 
 
 # region { Node }
 
-def get_nodes() -> list[NodeData]:
+def get_nodes() -> List[NodeData]:
     server_nodes = list(mongo_lib.nodes.find({}, {'_id': False}))
-    return TypeAdapter(list[NodeData]).validate_python(server_nodes)
+    return TypeAdapter(List[NodeData]).validate_python(server_nodes)
 
 
-def get_node_by_unid(node_unid: str) -> NodeData | None:
-    node = list(mongo_lib.nodes.find({'node_unid': node_unid}))
-    if len(node) == 0:
+def get_node_by_slug(node_slug: Slug) -> NodeData | None:
+    node = mongo_lib.nodes.find_one(__node_id(node_slug))
+    if node is None:
         return None
-    return NodeData.model_validate(node[0])
+
+    return NodeData.model_validate(node)
 
 
 def replace_node(server_node: NodeDataRequest) -> DatabaseResponse:
-    server_node.path = server_node.path.lstrip('/')
-    is_replacing = server_node.original_node_unid != server_node.node_unid
-    if is_replacing: delete_node(server_node.node_unid)
+    is_replacing = server_node.existing_node_slug != server_node.node_slug
+    if is_replacing: delete_node(server_node.node_slug)
 
-    result = mongo_lib.nodes.replace_one({'node_unid': server_node.original_node_unid}, server_node.model_dump(), upsert=True)
-    if result.did_upsert: return DatabaseResponse.CREATED
+    result = mongo_lib.nodes.replace_one(
+        __node_id(server_node.existing_node_slug),
+        __to_node_data(server_node).model_dump(),
+        upsert=True
+    )
 
-    return DatabaseResponse.REPLACED if is_replacing else DatabaseResponse.UPDATED
-
-
-def update_node(server_node: NodeData) -> DatabaseResponse:
-    mongo_lib.nodes.update_one({'node_unid': server_node.node_unid}, server_node.model_dump())
-    return DatabaseResponse.UPDATED
+    if is_replacing: return DatabaseResponse.REPLACED
+    return DatabaseResponse.CREATED if result.did_upsert else DatabaseResponse.UPDATED
 
 
-def delete_node(node_unid: str) -> DatabaseResponse:
-    mongo_lib.nodes.delete_one({'node_unid': node_unid})
+def delete_node(node_slug: Slug) -> DatabaseResponse:
+    mongo_lib.nodes.delete_one(__node_id(node_slug))
     return DatabaseResponse.DELETED
+
+
+def __to_node_data(request: NodeDataRequest) -> NodeData:
+    return NodeData(**request.model_dump())
 
 # endregion

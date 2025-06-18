@@ -1,12 +1,6 @@
 import {Injectable} from "@angular/core";
+import {API_PATH} from '../../app/app.config';
 
-export enum DatabaseResponse {
-  CREATED = 'CREATED',
-  UPDATED = 'UPDATED',
-  REPLACED = 'REPLACED',
-  ERROR = 'ERROR',
-  DELETED = 'DELETED',
-}
 
 @Injectable()
 export class BackendService {
@@ -15,7 +9,7 @@ export class BackendService {
 
   }
 
-  private readonly serverUrl: string = '/api/';
+  private readonly serverUrl: string = API_PATH;
 
   websocket(url: string): WebSocket {
     /**

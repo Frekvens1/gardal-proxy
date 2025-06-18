@@ -1,11 +1,11 @@
 <p-table [value]="rows || []"
          [autoLayout]="true"
          [scrollable]="true"
-         [scrollHeight]="scrollHeight+'px'"
          [resizableColumns]="true"
+         [scrollHeight]="scrollHeight+'px'"
          [responsiveLayout]="'scroll'"
-         sortField="data.node_unid" sortMode="multiple" dataKey="data.node_unid"
-         rowGroupMode="subheader" groupRowsBy="data.node_unid">
+         sortField="data.node_slug" sortMode="multiple" dataKey="data.node_slug"
+         rowGroupMode="subheader" groupRowsBy="data.node_slug">
   <ng-template pTemplate="caption">
     <div class="flex items-center gap-5">
       <span class="text-xl font-bold">Traefik nodes</span>
@@ -79,7 +79,7 @@
 
       @for (column of columns; track $index) {
         <td>
-          {{ serverNode.data[column.field] }}
+          {{ getNestedValue(serverNode, column.field) }}
         </td>
       }
 
@@ -95,7 +95,7 @@
         <p-button class="!ml-auto"
                   icon="pi pi-trash"
                   rounded raised severity="danger"
-                  [loading]="isDeletingNode[serverNode.data.node_unid]"
+                  [loading]="isDeletingNode[serverNode.data.node_slug]"
                   (click)="deleteNodeModal(serverNode)"/>
       </td>
     </tr>
@@ -124,7 +124,6 @@
             </p-button>
           </div>
 
-          <!-- TODO: Implement redirect_url
           <div class="group flex items-center gap-2.5">
             <p-tag severity="secondary" value="Redirect URL"/>
             <a target="_blank"
@@ -140,7 +139,7 @@
                       (click)="onClipboard(serverNode.redirect_url, popover, $event)">
             </p-button>
           </div>
-          -->
+
         </span>
       </td>
     </tr>
@@ -175,7 +174,7 @@
 <p-dialog #nodeDataEditDialog [header]="`${nodeDataEdit ? 'Update' : 'Add'} traefik node`"
           [(visible)]="showEditNodeModal" [modal]="true">
   <ng-template pTemplate="content">
-    <node-form [nodeUnidExists]="isReplacingNode"
+    <node-form [nodeSlugExists]="isReplacingNode"
                [parentElement]="nodeDataEditDialog"
                [nodeData]="nodeDataEdit" #nodeForm
                (onChange)="nodeFormChanged($event)"/>
@@ -185,7 +184,7 @@
     <p-button icon="pi pi-check"
               [label]="isReplacingNode ? 'Replace' : nodeDataEdit ? 'Update' : 'Add'"
               [severity]="isReplacingNode ? 'warn' : 'success'"
-              [disabled]="nodeForm && nodeForm.form.invalid"
+              [disabled]="nodeForm && nodeForm!.form?.invalid"
               [loading]="isSavingNode" (click)="saveEditNodeModal()"/>
   </ng-template>
 </p-dialog>

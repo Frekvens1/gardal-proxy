@@ -1,9 +1,8 @@
 import {Component, EventEmitter, OnInit} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {DatabaseResponse} from '../../core/services/backend.service';
-import {NodeDataRequest} from '../../components/node/node-form/node-form.component';
 import {GridView} from '../../components/node/node-grid/node-grid.component';
 import {Card} from 'primeng/card';
+import {DatabaseResponse, NodeData, NodeDataRequest} from '../../openapi-client';
 
 @Component({
   selector: 'page-dashboard',

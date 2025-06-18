@@ -1,19 +1,14 @@
 import {Inject, Injectable} from "@angular/core";
-import {BackendService} from "../services/backend.service";
-
-export type Hostnames = { [key: string]: HostnameData };
-export interface HostnameData {
-  active: { [key: string]: string[] };
-  all: { [key: string]: string[] };
-}
+import {DefaultService as BackendApi, HostDict} from '../../openapi-client';
+import {lastValueFrom, Observable} from 'rxjs';
 
 @Injectable()
 export class HostRepository {
 
-  constructor(@Inject (BackendService) private backend: BackendService) {
+  constructor(@Inject (BackendApi) private backendApi: BackendApi) {
   }
 
-  async getHosts(): Promise<Hostnames> {
-    return await this.backend.get('/hosts');
+  getHosts(): Promise<HostDict> {
+    return lastValueFrom(this.backendApi.getHosts());
   }
 }

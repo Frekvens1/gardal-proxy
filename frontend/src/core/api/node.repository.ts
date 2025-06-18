@@ -1,28 +1,26 @@
 import {Inject, Injectable} from "@angular/core";
-import {BackendService, DatabaseResponse} from "../services/backend.service";
-import {NodeData, NodeDataRequest} from '../../components/node/node-form/node-form.component';
+import {DatabaseResponse, DefaultService as BackendApi, NodeData, NodeDataRequest} from '../../openapi-client';
+import {lastValueFrom} from 'rxjs';
 
 @Injectable()
 export class NodeRepository {
 
-  constructor(@Inject (BackendService) private backend: BackendService) {
+  constructor(@Inject (BackendApi) private backendApi: BackendApi) {
   }
 
-  async getNodes(): Promise<NodeData[]> {
-    return await this.backend.get('/nodes');
+  getNodes(): Promise<NodeData[]> {
+    return lastValueFrom(this.backendApi.getNodes());
   }
 
-  async getNode(node_unid: string): Promise<NodeData> {
-    return await this.backend.get(`/node/${node_unid}`);
+  getNode(node_slug: string): Promise<NodeData> {
+    return lastValueFrom(this.backendApi.getNode(node_slug));
   }
 
-  async updateNode(serverNode: NodeDataRequest): Promise<[DatabaseResponse, any]> {
-    const result = await this.backend.post('/node', serverNode);
-    return [result.status, result]
+  updateNode(request: NodeDataRequest): Promise<DatabaseResponse> {
+    return lastValueFrom(this.backendApi.updateNode(request));
   }
 
-  async deleteNode(node_unid: string): Promise<[DatabaseResponse, any]> {
-    const result = await this.backend.delete('/node', node_unid);
-    return [result.status, result]
+  deleteNode(node_slug: string): Promise<DatabaseResponse> {
+    return lastValueFrom(this.backendApi.deleteNode(node_slug));
   }
 }

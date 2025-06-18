@@ -1,48 +1,93 @@
 import {EventEmitter, Inject, Injectable} from "@angular/core";
-import {NodeData, NodeDataRequest, NodeFormGroup} from './node-form.component';
 import {NodeRepository} from '../../../core/api/node.repository';
 import {MessageService} from 'primeng/api';
-import {FormGroup} from '@angular/forms';
-import {DatabaseResponse} from '../../../core/services/backend.service';
+import {FormBuilder, FormControl, FormGroup, NonNullableFormBuilder, Validators} from '@angular/forms';
+import {ConfigURLData, DatabaseResponse, NodeData, NodeDataRequest} from '../../../openapi-client';
+import ProtocolEnum = ConfigURLData.ProtocolEnum;
+
+interface ConfigUrlFormGroup {
+  protocol: FormControl<ProtocolEnum>;
+  hostname: FormControl<string>;
+  port: FormControl<number>;
+  path: FormControl<string | null>;
+}
+
+interface RedirectUrlFormGroup {
+  protocol: FormControl<ProtocolEnum>;
+  hostname: FormControl<string>;
+  port: FormControl<number>;
+}
+
+export interface NodeFormGroup {
+  name: FormControl<string>;
+  node_slug: FormControl<string>;
+  config_url: FormGroup<ConfigUrlFormGroup>;
+  redirect_url: FormGroup<RedirectUrlFormGroup>;
+}
+
+export type nodeProtocols = 'http' | 'https';
+export const nodeProtocolsList: nodeProtocols[] = ['http', 'https'];
 
 @Injectable()
 export class NodeFormService {
 
   constructor(@Inject(NodeRepository) private nodeRepository: NodeRepository,
-              @Inject(MessageService) private messageService: MessageService) {
+              @Inject(MessageService) private messageService: MessageService,
+              private formBuilder: NonNullableFormBuilder,
+              private formBuilderNull: FormBuilder) {
 
   }
 
-  async save(originalNodeUnid: string, nodeForm: FormGroup<NodeFormGroup>, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<void> {
-    const nodeData: NodeDataRequest = {
-      original_node_unid: originalNodeUnid,
-      node_unid: nodeForm.controls.node_unid.value,
-      protocol: nodeForm.controls.protocol.value,
-      hostname: nodeForm.controls.hostname.value,
-      port: nodeForm.controls.port.value,
-      path: nodeForm.controls.path.value,
-    }
+  createNodeForm(initial: Partial<NodeData> = {}): FormGroup<NodeFormGroup> {
+    return this.formBuilder.group({
+      name: this.formBuilder.control(initial.name ?? '', Validators.required),
+      node_slug: this.formBuilder.control(initial.node_slug ?? '', Validators.required),
+      config_url: this.formBuilder.group({
+        protocol: this.formBuilder.control(initial.config_url?.protocol ?? 'http', Validators.required),
+        hostname: this.formBuilder.control(initial.config_url?.hostname ?? '', Validators.required),
+        port: this.formBuilder.control(initial.config_url?.port ?? 8080, [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(65535),
+        ]),
+        path: this.formBuilderNull.control(initial.config_url?.path ?? ''),
+      }),
+      redirect_url: this.formBuilder.group({
+        protocol: this.formBuilder.control(initial.redirect_url?.protocol ?? 'http', Validators.required),
+        hostname: this.formBuilder.control(initial.redirect_url?.hostname ?? '', Validators.required),
+        port: this.formBuilder.control(initial.redirect_url?.port ?? 8080, [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(65535),
+        ]),
+      }),
+    });
+  }
 
-    nodeData.path = nodeData.path.replace(/^\/+/, '');
+  toNodeData(form: FormGroup<NodeFormGroup>): NodeData {
+    return form.getRawValue();
+  }
 
-    let hasError = false;
-    await this.nodeRepository.updateNode(nodeData).then(([response, data]) => {
+
+async save(existingNodeSlug: string, nodeData: NodeData, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<void> {
+    if (nodeData.config_url.path) nodeData.config_url.path = nodeData.config_url.path.replace(/^\/+/, '');
+    const request = {...nodeData, existing_node_slug: existingNodeSlug} as NodeDataRequest;
+
+    await this.nodeRepository.updateNode(request).then((response) => {
       switch (response) {
         case 'CREATED':
-          onSuccess.emit([response, nodeData]);
+          onSuccess.emit([response, request]);
           this.messageService.add({severity: 'success', summary: 'Success', detail: 'Node successfully added!'});
           break;
 
         case 'UPDATED':
         case 'REPLACED':
-          onSuccess.emit([response, nodeData]);
+          onSuccess.emit([response, request]);
           this.messageService.add({severity: 'success', summary: 'Success', detail: 'Node successfully updated!'});
           break;
 
         default:
-          hasError = true;
           console.error({
-            data: data,
             nodeData: nodeData,
           });
           this.messageService.add({
@@ -53,26 +98,22 @@ export class NodeFormService {
           break;
       }
     }).catch((err) => {
-      hasError = true;
       console.info({nodeData: nodeData});
       console.error(err);
       this.messageService.add({severity: 'error', summary: 'Error', detail: 'There was an error while adding node!'});
     });
-
-    if (!hasError) nodeForm.reset();
   }
 
   async delete(nodeData: NodeData, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<void> {
-    await this.nodeRepository.deleteNode(nodeData.node_unid).then(([response, data]) => {
+    await this.nodeRepository.deleteNode(nodeData.node_slug).then((response) => {
       switch (response) {
         case 'DELETED':
-          onSuccess.emit([response, {original_node_unid: nodeData.node_unid, ...nodeData}]);
+          onSuccess.emit([response, {...nodeData, existing_node_slug: nodeData.node_slug}]);
           this.messageService.add({severity: 'success', summary: 'Success', detail: 'Node successfully deleted!'});
           break;
 
         default:
           console.info({
-            data: data,
             nodeData: nodeData,
           });
           console.error('There was an error while removing node!');

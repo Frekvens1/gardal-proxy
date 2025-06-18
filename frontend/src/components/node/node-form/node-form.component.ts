@@ -2,41 +2,17 @@ import {Component, EventEmitter, Inject, Input, OnInit, Output} from "@angular/c
 import {InputGroup} from 'primeng/inputgroup';
 import {InputGroupAddon} from 'primeng/inputgroupaddon';
 import {InputText} from 'primeng/inputtext';
-import {AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {AbstractControl, FormControl, FormGroup, ReactiveFormsModule} from '@angular/forms';
 import {InputNumber} from 'primeng/inputnumber';
 import {Select} from 'primeng/select';
 import {NodeRepository} from '../../../core/api/node.repository';
 import {MessageService} from 'primeng/api';
-import {DatabaseResponse} from '../../../core/services/backend.service';
 import {IftaLabel} from 'primeng/iftalabel';
 import {KeyFilter} from 'primeng/keyfilter';
-import {AutoFocus} from 'primeng/autofocus';
 import {UserAgentService} from '../../../core/services/user-agent.service';
 import {NgClass} from '@angular/common';
-
-
-export interface NodeFormGroup {
-  node_unid: FormControl<string>;
-  protocol: FormControl<nodeProtocols>;
-  hostname: FormControl<string>;
-  port: FormControl<number>;
-  path: FormControl<string>;
-}
-
-export interface NodeData {
-  node_unid: string;
-  protocol: nodeProtocols;
-  hostname: string;
-  port: number;
-  path: string;
-}
-
-export interface NodeDataRequest extends NodeData {
-  original_node_unid: string;
-}
-
-export type nodeProtocols = 'http://' | 'https://';
-export const nodeProtocolsList: nodeProtocols[] = ['http://', 'https://'];
+import {DatabaseResponse, NodeData, NodeDataRequest} from '../../../openapi-client';
+import {NodeFormGroup, NodeFormService, nodeProtocols, nodeProtocolsList} from './node-form.service';
 
 @Component({
   selector: 'node-form',
@@ -51,7 +27,6 @@ export const nodeProtocolsList: nodeProtocols[] = ['http://', 'https://'];
     Select,
     IftaLabel,
     KeyFilter,
-    AutoFocus,
     NgClass,
   ],
   providers: [
@@ -63,58 +38,63 @@ export const nodeProtocolsList: nodeProtocols[] = ['http://', 'https://'];
 
 export class NodeFormComponent implements OnInit {
 
-  @Input() node_unid: string = '';
-  @Input() protocol: nodeProtocols = 'http://';
+  @Input() node_slug: string = '';
+  @Input() protocol: nodeProtocols = 'http';
   @Input() ip: string = '';
   @Input() port: number = 8080;
   @Input() path: string = 'api/http/routers'; //'api/rawdata';
 
   @Input() nodeData: NodeData | undefined;
-  @Input() existingNodeUnids: string[] = [];
+  @Input() nodeSlugExists: boolean = false;
+  @Input() existingNodeSlugs: string[] = [];
 
   @Input() parentElement: any | undefined;
+
+  largeScreen: boolean = false;
 
   @Output() onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]> = new EventEmitter();
   @Output() onChange: EventEmitter<[string, FormControl]> = new EventEmitter();
 
-  idSafe = {input: /^[a-zA-Z0-9-]*$/, paste: /[^a-zA-Z0-9-]/g};
+  idSafe = {input: /^[a-z0-9_-]*$/, paste: /[^a-z0-9_-]/g};
   hostnameSafe = {input: /^[a-zA-Z0-9.]*$/, paste: /[^a-zA-Z0-9.]/g};
   pathSafe = {input: /^[a-zA-Z0-9/_-]*$/, paste: /[^a-zA-Z0-9/_-]/g};
 
   isUpdating: boolean = false;
 
-  public form = new FormGroup<NodeFormGroup>({
-    node_unid: new FormControl<string>(this.node_unid, {nonNullable: true, validators: [Validators.required]}),
-    protocol: new FormControl<nodeProtocols>(this.protocol, {nonNullable: true, validators: [Validators.required]}),
-    hostname: new FormControl<string>(this.ip, {nonNullable: true, validators: [Validators.required]}),
-    port: new FormControl<number>(this.port, {nonNullable: true, validators: [Validators.required]}),
-    path: new FormControl<string>(this.path, {nonNullable: true}),
-  });
+  public form: FormGroup<NodeFormGroup> | undefined;
 
-  constructor(@Inject(UserAgentService) private userAgentService: UserAgentService) {
+  constructor(@Inject(UserAgentService) private userAgentService: UserAgentService,
+              @Inject(NodeFormService) private nodeFormService: NodeFormService) {
   }
 
-  @Input() nodeUnidExists: boolean = false;
 
-  largeScreen: boolean = false;
 
   ngOnInit(): void {
+    this.form = this.nodeFormService.createNodeForm();
     this.largeScreen = !this.userAgentService.lg();
 
     if (this.nodeData) {
       this.isUpdating = true;
-      const data = this.nodeData;
-      this.form.controls.node_unid.setValue(data.node_unid);
-      this.form.controls.protocol.setValue(data.protocol);
-      this.form.controls.hostname.setValue(data.hostname);
-      this.form.controls.port.setValue(data.port);
-      this.form.controls.path.setValue(data.path);
+      const configControls = this.form.controls.config_url.controls;
+      const redirectControls = this.form.controls.redirect_url.controls;
+
+      this.form.controls.name.setValue(this.nodeData.name || '');
+      this.form.controls.node_slug.setValue(this.nodeData.node_slug);
+
+      configControls.protocol.setValue(this.nodeData.config_url.protocol);
+      configControls.hostname.setValue(this.nodeData.config_url.hostname);
+      configControls.port.setValue(this.nodeData.config_url.port);
+      configControls.path.setValue(this.nodeData.config_url.path);
+
+      redirectControls.protocol.setValue(this.nodeData.config_url.protocol);
+      redirectControls.hostname.setValue(this.nodeData.config_url.hostname);
+      redirectControls.port.setValue(this.nodeData.config_url.port);
     }
   }
 
   onChangeEvent(control: FormControl): void {
-    const controlName = Object.keys(this.form.controls).find(name =>
-      control === (this.form.controls as unknown as { [key: string]: AbstractControl })[name]
+    const controlName = Object.keys(this.form?.controls || {}).find(name =>
+      control === (this.form?.controls as unknown as { [key: string]: AbstractControl })[name]
     );
 
     if (controlName == null) return;
@@ -137,6 +117,5 @@ export class NodeFormComponent implements OnInit {
     control.setValue(newValue);
   }
 
-
-  readonly nodeProtocolsList = nodeProtocolsList;
+  protected readonly nodeProtocolsList = nodeProtocolsList;
 }

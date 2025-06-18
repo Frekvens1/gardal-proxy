@@ -1,16 +1,15 @@
-import {AfterViewInit, Component, ElementRef, EventEmitter, Inject, Input, OnInit, ViewChild} from "@angular/core";
+import {Component, ElementRef, EventEmitter, Inject, Input, OnInit, ViewChild} from "@angular/core";
 import {Table, TableModule, TableService} from 'primeng/table';
-import {NodeData, NodeDataRequest, NodeFormComponent} from '../node-form/node-form.component';
+import {NodeFormComponent} from '../node-form/node-form.component';
 import {NodeRepository} from '../../../core/api/node.repository';
 import {Button, ButtonIcon} from 'primeng/button';
 import {ChevronDownIcon, ChevronRightIcon} from 'primeng/icons';
 import {Ripple} from 'primeng/ripple';
-import {HostnameData, Hostnames, HostRepository} from '../../../core/api/host.repository';
-import {DatabaseResponse} from '../../../core/services/backend.service';
+import {HostRepository} from '../../../core/api/host.repository';
 import {forkJoin} from 'rxjs';
 import {Tag} from 'primeng/tag';
 import {Dialog} from 'primeng/dialog';
-import {ConfirmationService} from 'primeng/api';
+import {ConfirmationService, MessageService} from 'primeng/api';
 import {NodeFormService} from '../node-form/node-form.service';
 import {DeleteModalComponent} from '../../../core/modals/delete-modal/delete-modal.component';
 import {Badge} from 'primeng/badge';
@@ -18,7 +17,7 @@ import {FormControl} from '@angular/forms';
 import {Clipboard} from '@angular/cdk/clipboard';
 import {Popover} from 'primeng/popover';
 import {NgClass} from '@angular/common';
-import {UserAgentService} from '../../../core/services/user-agent.service';
+import {DatabaseResponse, HostData, HostDict, NodeData, NodeDataRequest} from '../../../openapi-client';
 
 interface GridColumn {
   field: string;
@@ -27,8 +26,9 @@ interface GridColumn {
 
 interface GridRow {
   data: NodeData;
-  hostnames: HostnameData;
+  hostnames: HostData | undefined;
   config_url: string;
+  redirect_url: string;
 }
 
 @Component({
@@ -64,6 +64,7 @@ interface GridRow {
 export class GridView implements OnInit {
   constructor(@Inject(NodeRepository) private nodeRepository: NodeRepository,
               @Inject(HostRepository) private hostnameRepository: HostRepository,
+              @Inject(MessageService) private messageService: MessageService,
               @Inject(NodeFormService) private nodeFormService: NodeFormService,
               private clipboard: Clipboard) {
   }
@@ -78,7 +79,7 @@ export class GridView implements OnInit {
   @ViewChild('deleteModalComponent') deleteModalComponent: DeleteModalComponent | undefined;
 
   nodes: NodeData[] = [];
-  hostnames: Hostnames = {};
+  hostnames: HostDict | undefined;
 
   ngOnInit(): void {
     this.refreshRows();
@@ -101,10 +102,11 @@ export class GridView implements OnInit {
 
   rows: GridRow[] = [];
   columns: GridColumn[] = [
-    {field: 'node_unid', header: 'ID'},
-    {field: 'protocol', header: 'Protocol'},
-    {field: 'hostname', header: 'Hostname'},
-    {field: 'port', header: 'Port'},
+    {field: 'data.name', header: 'Name'},
+    {field: 'data.node_slug', header: 'ID'},
+    {field: 'data.config_url.protocol', header: 'Protocol'},
+    {field: 'data.config_url.hostname', header: 'Hostname'},
+    {field: 'data.config_url.port', header: 'Port'},
   ];
 
   headerOffset: number = 0;
@@ -118,23 +120,36 @@ export class GridView implements OnInit {
     forkJoin({
       nodes: this.nodeRepository.getNodes(),
       hostnames: this.hostnameRepository.getHosts(),
-    }).subscribe((result) => {
-      this.nodes = result.nodes;
-      this.hostnames = result.hostnames;
-      this.updateRows(result.nodes, result.hostnames);
-      this.isRefreshingRows = false;
+    }).subscribe({
+      next: (result) => {
+        this.nodes = result.nodes;
+        this.hostnames = result.hostnames;
+        this.updateRows(result.nodes, result.hostnames);
+        this.isRefreshingRows = false;
+      },
+      error: (err) => {
+        this.isRefreshingRows = false;
+        console.error(err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not refresh the grid!'
+        });
+      }
     });
   }
 
-  updateRows(nodes: NodeData[], hostnames: Hostnames): void {
+  updateRows(nodes: NodeData[], hostnames: HostDict | undefined): void {
     const rowsBuilder: GridRow[] = [];
     if (!nodes) return;
     for (const node of nodes) {
-      const configUrl = `${node.protocol}${node.hostname}:${node.port}/${node.path}`;
+      const configUrl = `${node.config_url.protocol}://${node.config_url.hostname}:${node.config_url.port}/${node.config_url.path}`;
+      const redirect_url = `${node.redirect_url.protocol}://${node.redirect_url.hostname}:${node.redirect_url.port}`;
       rowsBuilder.push({
         data: node,
-        hostnames: hostnames[node.node_unid],
+        hostnames: hostnames?.hosts[node.node_slug],
         config_url: configUrl,
+        redirect_url: redirect_url,
       });
     }
 
@@ -144,6 +159,10 @@ export class GridView implements OnInit {
       this.headerOffset = this.headerRef?.nativeElement?.offsetHeight - 10 || 0;
       this.rowOffset = this.headerOffset + this.rowRef?.nativeElement?.offsetHeight - 1 || 0;
     });
+  }
+
+  getNestedValue(dict: {[key: string]: any}, field: string) {
+    return field.split('.').reduce((nested, key) => nested && nested[key], dict);
   }
 
   // endregion
@@ -169,20 +188,22 @@ export class GridView implements OnInit {
     this.showEditNodeModal = false;
   }
 
-  nodeExists(node: { data?: NodeData, unid?: string }): boolean {
-    let nodeUnid: string | undefined = node.data?.node_unid;
-    if (!nodeUnid) nodeUnid = node.unid;
-    if (nodeUnid == undefined) return false;
+  nodeExists(nodeParam: { data?: NodeData, nodeSlug?: string }): boolean {
+    let nodeSlug: string | undefined = nodeParam.data?.node_slug;
+    if (!nodeSlug) nodeSlug = nodeParam.nodeSlug;
+    if (nodeSlug == undefined) return false;
 
-    if (this.nodeDataEdit?.node_unid == nodeUnid) return false;
-    return this.nodes.some((node) => node.node_unid == nodeUnid);
+    if (this.nodeDataEdit?.node_slug == nodeSlug) return false;
+    return this.nodes.some((node) => node.node_slug == nodeSlug);
   }
 
   async saveEditNodeModal(): Promise<void> {
-    if (this.nodeForm) {
+    if (this.nodeForm && this.nodeForm.form) {
       this.isSavingNode = true;
-      const node_unid = this.nodeDataEdit?.node_unid || this.nodeForm.form.controls.node_unid.value;
-      await this.nodeFormService.save(node_unid, this.nodeForm.form, this.onNodeChange);
+      const nodeData: NodeData = this.nodeFormService.toNodeData(this.nodeForm.form);
+      const currentSlug: string = this.nodeDataEdit?.node_slug || nodeData.node_slug;
+
+      await this.nodeFormService.save(currentSlug, nodeData, this.onNodeChange);
       this.isSavingNode = false;
     }
 
@@ -192,29 +213,27 @@ export class GridView implements OnInit {
   async deleteNodeModal(gridRow: GridRow): Promise<void> {
     if (this.deleteModalComponent) {
       const accepted = await this.deleteModalComponent.confirm(
-        `You are about to delete traefik node:\n${gridRow.data.node_unid}`
+        `You are about to delete traefik node:\n${gridRow.data.node_slug}`
       );
 
       if (!accepted) return;
-      this.isDeletingNode[gridRow.data.node_unid] = true;
+      this.isDeletingNode[gridRow.data.node_slug] = true;
       await this.nodeFormService.delete(gridRow.data, this.onNodeChange);
-      delete this.isDeletingNode[gridRow.data.node_unid];
+      delete this.isDeletingNode[gridRow.data.node_slug];
     }
   }
 
   nodeFormChanged(event: [string, FormControl]): void {
     const [controlName, control] = event;
-    if (controlName != 'node_unid') return;
-    this.isReplacingNode = this.nodeExists({unid: control.value})
+    if (controlName != 'node_slug') return;
+    this.isReplacingNode = this.nodeExists({nodeSlug: control.value as string})
   }
 
   // endregion
 
   // region { Private }
 
-  private nodeChanged(response: DatabaseResponse, nodeDataRequest: NodeDataRequest): void {
-    const {original_node_unid, ...nodeData} = nodeDataRequest;
-
+  private nodeChanged(response: DatabaseResponse, nodeData: NodeDataRequest): void {
     let index = -1;
     switch (response) {
       case 'CREATED':
@@ -222,27 +241,29 @@ export class GridView implements OnInit {
         break;
 
       case 'UPDATED':
-        index = this.nodes.findIndex(node => node.node_unid === nodeData.node_unid);
+        index = this.nodes.findIndex(node => node.node_slug === nodeData.node_slug);
         if (index !== -1) {
           this.nodes[index] = nodeData;
         }
         break;
 
       case 'REPLACED':
-        index = this.nodes.findIndex(node => node.node_unid === nodeData.node_unid);
+        index = this.nodes.findIndex(node => node.node_slug === nodeData.existing_node_slug);
         if (index !== -1) {
           this.nodes.splice(index, 1);
         }
 
-        index = this.nodes.findIndex(node => node.node_unid === original_node_unid);
+        index = this.nodes.findIndex(node => node.node_slug === nodeData.node_slug);
         if (index !== -1) {
           this.nodes[index] = nodeData;
+        } else {
+          this.nodes.push(nodeData);
         }
 
         break;
 
       case 'DELETED':
-        index = this.nodes.findIndex(node => node.node_unid === nodeData.node_unid);
+        index = this.nodes.findIndex(node => node.node_slug === nodeData.node_slug);
         if (index !== -1) {
           this.nodes.splice(index, 1);
         }

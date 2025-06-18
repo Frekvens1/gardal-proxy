@@ -1,5 +1,7 @@
 import re
 
+from modules.core_models import Slug
+
 
 def get_domain_names_from_traefik_config(text: str) -> list:
     pattern = r'Host.*?\(["\'`](.*?\..*?)["\'`]?\)'
@@ -8,16 +10,16 @@ def get_domain_names_from_traefik_config(text: str) -> list:
     return list(set(matches))
 
 
-def build_config(unid: str, redirect_url: str, hostnames: list, traefik_config: dict, wildcard: bool = False) -> dict:
+def build_config(slug: Slug, redirect_url: str, hostnames: list, traefik_config: dict, wildcard: bool = False) -> dict:
     if 'http' not in traefik_config: traefik_config['http'] = {}
     if 'routers' not in traefik_config['http']: traefik_config['http']['routers'] = {}
     if 'services' not in traefik_config['http']: traefik_config['http']['services'] = {}
     if 'middlewares' not in traefik_config['http']: traefik_config['http']['middlewares'] = {}
 
     for index, hostname in enumerate(hostnames):
-        router_name = f'{index}-{unid}-router'
-        router_redirect_name = f'{index}-{unid}-router-redirect'
-        service_name = f'{index}-{unid}-service'
+        router_name = f'{index}-{slug}-node-router'
+        router_redirect_name = f'{index}-{slug}-node-router-redirect'
+        service_name = f'{index}-{slug}-node-service'
 
         tls_domain = hostname
         if wildcard:
@@ -28,7 +30,7 @@ def build_config(unid: str, redirect_url: str, hostnames: list, traefik_config: 
                 'websecure'
             ],
             'middlewares': [
-                'local-ip-whitelist'
+                'local-ip-whitelist',
             ],
             'service': service_name,
             'rule': f'Host(`{hostname}`)',
@@ -81,7 +83,7 @@ def build_config(unid: str, redirect_url: str, hostnames: list, traefik_config: 
             'sourceRange': [
                 '10.0.0.0/8',
                 '172.16.0.0/12',
-                '192.168.0.0/16'
+                '192.168.0.0/16',
             ]
         }
     }})
