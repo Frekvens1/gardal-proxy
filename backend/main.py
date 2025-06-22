@@ -1,3 +1,5 @@
+import json
+
 from fastapi import FastAPI
 from libraries import traefik_lib, mongo_lib
 from modules.hosts.models import HostData, HostDict
@@ -22,32 +24,41 @@ async def get_hosts() -> HostDict:
     return HostDict(hosts=active_hostnames)
 
 
-@app.get('/traefik_config', operation_id='get_traefik_config')
+@app.get('/traefik-config', operation_id='get_traefik_config')
 async def get_traefik_config():
     global active_hostnames
 
     hostname_list = []
-    traefik_config = {}
     hostnames_dict = {}
+    traefik_config = {}
+
     for server in nodes_utils.get_nodes():
+        if not server.fetch_config: continue
         raw_config = utils.fetch_url(server.config_url.build_url())
         hostnames_unfiltered = traefik_lib.get_domain_names_from_traefik_config(raw_config)
         hostnames_filtered, hostnames_duplicates = utils.split_duplicates(hostname_list, hostnames_unfiltered)
 
-        traefik_config = traefik_lib.build_config(
-            slug=server.node_slug,
-            redirect_url=server.redirect_url.build_url(),
-            hostnames=hostnames_filtered,
-            traefik_config=traefik_config,
-            wildcard=True
-        )
+        if server.enabled:
+            hostname_list.extend(hostnames_filtered)
+            traefik_config = traefik_lib.build_config(
+                slug=server.node_slug,
+                redirect_url=server.redirect_url.build_url(),
+                hostnames=hostnames_filtered,
+                traefik_config=traefik_config,
+                wildcard=True
+            )
 
-        hostname_list.extend(hostnames_filtered)
-        hostnames_dict[server.node_slug] = HostData(
-            active=hostnames_filtered,
-            duplicate=hostnames_duplicates,
-            all=hostnames_unfiltered,
-        )
+            hostnames_dict[server.node_slug] = HostData(
+                active=hostnames_filtered,
+                duplicate=hostnames_duplicates,
+                all=hostnames_unfiltered,
+            )
+        else:
+            hostnames_dict[server.node_slug] = HostData(
+                active=[],
+                duplicate=[],
+                all=hostnames_unfiltered,
+            )
 
     active_hostnames = hostnames_dict
     return traefik_config

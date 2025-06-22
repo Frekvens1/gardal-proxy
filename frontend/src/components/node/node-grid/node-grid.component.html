@@ -5,7 +5,7 @@
          [scrollHeight]="scrollHeight+'px'"
          [responsiveLayout]="'scroll'"
          rowGroupMode="subheader" sortMode="multiple"
-         sortField="data.node_slug"  dataKey="data.node_slug">
+         sortField="data.node_slug" dataKey="data.node_slug">
   <ng-template pTemplate="caption">
     <div class="flex items-center gap-5">
       <span class="text-xl font-bold">Traefik nodes</span>
@@ -61,17 +61,21 @@
           </p-button>
 
           <div class="flex flex-col gap-2">
-            @if (serverNode.hostnames?.active?.length > 0) {
-              <p-badge class="w-full" severity="success" value=" {{serverNode.hostnames?.active?.length}} "/>
-            }
+            @if (serverNode.data.enabled) {
+              @if (serverNode.hostnames?.active?.length > 0) {
+                <p-badge class="w-full" severity="success" value=" {{serverNode.hostnames?.active?.length}} "/>
+              }
 
-            @if ((serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length) > 0) {
-              <p-badge class="w-full" severity="warn"
-                       value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
-            }
+              @if ((serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length) > 0) {
+                <p-badge class="w-full" severity="warn"
+                         value=" {{serverNode.hostnames?.all?.length - serverNode.hostnames?.active?.length}} "/>
+              }
 
-            @if (!serverNode.hostnames?.all?.length) {
-              <p-badge class="w-full" severity="info" value=" 0 "/>
+              @if (!serverNode.hostnames?.all?.length) {
+                <p-badge class="w-full" severity="info" value=" 0 "/>
+              }
+            } @else {
+              <p-badge class="w-full" severity="secondary" value=" {{serverNode.hostnames?.all?.length || 0}} "/>
             }
           </div>
         </div>
@@ -79,7 +83,15 @@
 
       @for (column of columns; track $index) {
         <td>
-          {{ getNestedValue(serverNode, column.field) }}
+          @if (!column.type || column.type == 'TEXT') {
+            {{ getNestedValue(serverNode, column.field) }}
+          } @else if (column.type == 'DATE') {
+            {{ getNestedValue(serverNode, column.field) }}
+          } @else if (column.type == 'BOOLEAN') {
+            <p-inputSwitch [disabled]="isFieldActionNode[serverNode.data.node_slug]?.[column.field] || false"
+                           [ngModel]="getNestedValue(serverNode, column.field)"
+                           (click)="toggleBooleanField(serverNode, column.field)"/>
+          }
         </td>
       }
 
@@ -147,7 +159,9 @@
       <tr>
         <td [attr.colspan]="columns.length + 3">
             <span class="group flex items-center gap-2.5">
-              @if (serverNode.hostnames.active.includes(hostname)) {
+              @if (!serverNode.data.enabled) {
+                <p-tag value="Disabled" severity="secondary"/>
+              } @else if (serverNode.hostnames.active.includes(hostname)) {
                 <p-tag value="Active" severity="success"/>
               } @else {
                 <p-tag value="Duplicate" severity="warn"/>

@@ -4,8 +4,8 @@ from fastapi import FastAPI
 
 from modules.core_enums import DatabaseResponse
 from modules.core_models import Slug
-from modules.nodes.models import NodeData, NodeDataRequest
-from modules.nodes.utils import get_node_by_slug, delete_node, get_nodes, replace_node
+from modules.nodes.models import NodeData, NodeDataRequest, PartialNodeDataRequest
+from modules.nodes.utils import get_node_by_slug, delete_node, get_nodes, replace_node, replace_partial_node
 
 
 def initialize(app: FastAPI):
@@ -35,6 +35,15 @@ def initialize(app: FastAPI):
         """
 
         return replace_node(node_data)
+
+    @app.put('/node', operation_id='update_node_partial')
+    async def app_put_node_update_partial(partial_node_data: PartialNodeDataRequest) -> DatabaseResponse:
+        """
+        :param partial_node_data: Partial NodeData to update
+        :return: {status: DatabaseResponse}
+        """
+
+        return replace_partial_node(partial_node_data)
 
     @app.delete('/node', operation_id='delete_node')
     async def app_post_node_delete(node_slug: Slug) -> DatabaseResponse:

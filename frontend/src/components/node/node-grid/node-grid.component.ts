@@ -13,15 +13,32 @@ import {ConfirmationService, MessageService} from 'primeng/api';
 import {NodeFormService} from '../node-form/node-form.service';
 import {DeleteModalComponent} from '../../../core/modals/delete-modal/delete-modal.component';
 import {Badge} from 'primeng/badge';
-import {FormControl} from '@angular/forms';
+import {FormControl, FormsModule} from '@angular/forms';
 import {Clipboard} from '@angular/cdk/clipboard';
 import {Popover} from 'primeng/popover';
 import {NgClass} from '@angular/common';
-import {DatabaseResponse, HostData, HostDict, NodeData, NodeDataRequest} from '../../../openapi-client';
+import {
+  DatabaseResponse,
+  HostData,
+  HostDict,
+  NodeData,
+  NodeDataRequest,
+  PartialNodeDataRequest
+} from '../../../openapi-client';
+import {InputSwitch} from 'primeng/inputswitch';
+
+
+type GridColumnType = typeof GridColumnType[keyof typeof GridColumnType];
+const GridColumnType = {
+  Text: 'TEXT',
+  Boolean: 'BOOLEAN',
+  Date: 'DATE',
+} as const;
 
 interface GridColumn {
   field: string;
   header: string;
+  type?: GridColumnType;
 }
 
 interface GridRow {
@@ -50,6 +67,8 @@ interface GridRow {
     Badge,
     Popover,
     NgClass,
+    FormsModule,
+    InputSwitch,
   ],
   providers: [
     NodeRepository,
@@ -107,6 +126,8 @@ export class GridView implements OnInit {
     {field: 'data.config_url.protocol', header: 'Protocol'},
     {field: 'data.config_url.hostname', header: 'Hostname'},
     {field: 'data.config_url.port', header: 'Port'},
+    {field: 'data.enabled', header: 'Enabled', type: 'BOOLEAN'},
+    {field: 'data.fetch_config', header: 'Fetch config', type: 'BOOLEAN'},
   ];
 
   headerOffset: number = 0;
@@ -161,8 +182,37 @@ export class GridView implements OnInit {
     });
   }
 
-  getNestedValue(dict: {[key: string]: any}, field: string) {
-    return field.split('.').reduce((nested, key) => nested && nested[key], dict);
+  getNestedValue(dict: { [key: string]: any }, field: string): any {
+    const keys = field.split('.');
+    let nested = dict;
+
+    for (const key of keys) {
+      if (nested && typeof nested === 'object' && key in nested) {
+        nested = nested[key];
+      } else {
+        return undefined;
+      }
+    }
+
+    return nested;
+  }
+
+
+  setNestedValue(dict: { [key: string]: any }, field: string, value: any): void {
+    const keys = field.split('.');
+    let current = dict;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!(key in current)) current[key] = {};
+      current = current[key];
+    }
+
+    current[keys[keys.length - 1]] = value;
+  }
+
+  createNestedField(path: string, value: any): any {
+    return path.split('.').reverse().reduce((acc, key) => ({[key]: acc}), value);
   }
 
   // endregion
@@ -172,6 +222,8 @@ export class GridView implements OnInit {
   nodeDataEdit: NodeData | undefined;
 
   isDeletingNode: { [key: string]: boolean } = {};
+  isFieldActionNode: { [key: string]: { [key: string]: boolean } | undefined } = {};
+
   isSavingNode: boolean = false;
   isReplacingNode: boolean = false;
   showEditNodeModal: boolean = false;
@@ -198,16 +250,17 @@ export class GridView implements OnInit {
   }
 
   async saveEditNodeModal(): Promise<void> {
+    let hasError = false;
     if (this.nodeForm && this.nodeForm.form) {
       this.isSavingNode = true;
       const nodeData: NodeData = this.nodeFormService.toNodeData(this.nodeForm.form);
       const currentSlug: string = this.nodeDataEdit?.node_slug || nodeData.node_slug;
 
-      await this.nodeFormService.save(currentSlug, nodeData, this.onNodeChange);
+      hasError = !await this.nodeFormService.save(currentSlug, nodeData, this.onNodeChange);
       this.isSavingNode = false;
     }
 
-    this.showEditNodeModal = false;
+    this.showEditNodeModal = hasError;
   }
 
   async deleteNodeModal(gridRow: GridRow): Promise<void> {
@@ -248,7 +301,7 @@ export class GridView implements OnInit {
         break;
 
       case 'REPLACED':
-        index = this.nodes.findIndex(node => node.node_slug === nodeData.existing_node_slug);
+        index = this.nodes.findIndex(node => node.node_slug === nodeData.lookup_id);
         if (index !== -1) {
           this.nodes.splice(index, 1);
         }
@@ -271,6 +324,55 @@ export class GridView implements OnInit {
     }
 
     this.updateRows(this.nodes, this.hostnames);
+  }
+
+  async toggleBooleanField(row: GridRow, field: string): Promise<void> {
+    const node_slug = row.data.node_slug;
+    const value = this.getNestedValue(row, field);
+    const rowData = this.createNestedField(field, !value);
+    const nodeData: PartialNodeDataRequest = {...rowData?.['data'], node_slug: node_slug, lookup_id: node_slug};
+
+    this.setNestedValue(row, field, undefined);
+    if (!(node_slug in this.isFieldActionNode)) {
+      this.isFieldActionNode[node_slug] = {};
+    }
+
+    const success = () => {
+      this.setNestedValue(row, field, !value);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Successfully updated the value!'
+      });
+    }
+
+    const error = () => {
+      this.setNestedValue(row, field, value);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'There was an error updating the value!'
+      });
+    }
+
+    this.isFieldActionNode[node_slug]![field] = true;
+    await this.nodeRepository.updateNodePartial(nodeData).then((response: DatabaseResponse) => {
+      switch (response) {
+        case 'REPLACED':
+        case 'UPDATED':
+          success();
+          break;
+        default:
+          console.error(response);
+          error();
+      }
+
+    }).catch((err: Error) => {
+      console.error(err);
+      error();
+    });
+
+    delete this.isFieldActionNode[node_slug]![field];
   }
 
   // endregion

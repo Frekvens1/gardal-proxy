@@ -5,7 +5,7 @@ from pydantic import TypeAdapter
 from libraries import mongo_lib
 from modules.core_enums import DatabaseResponse
 from modules.core_models import Slug
-from modules.nodes.models import NodeData, NodeDataRequest
+from modules.nodes.models import NodeData, NodeDataRequest, PartialNodeDataRequest, PartialNodeData
 
 
 def __node_id(slug: Slug) -> dict:
@@ -28,17 +28,30 @@ def get_node_by_slug(node_slug: Slug) -> NodeData | None:
 
 
 def replace_node(server_node: NodeDataRequest) -> DatabaseResponse:
-    is_replacing = server_node.existing_node_slug != server_node.node_slug
+    is_replacing = server_node.lookup_id != server_node.node_slug
     if is_replacing: delete_node(server_node.node_slug)
 
     result = mongo_lib.nodes.replace_one(
-        __node_id(server_node.existing_node_slug),
+        __node_id(server_node.lookup_id),
         __to_node_data(server_node).model_dump(),
         upsert=True
     )
 
     if is_replacing: return DatabaseResponse.REPLACED
     return DatabaseResponse.CREATED if result.did_upsert else DatabaseResponse.UPDATED
+
+
+def replace_partial_node(partial_server_node: PartialNodeDataRequest) -> DatabaseResponse:
+    is_replacing = partial_server_node.lookup_id != partial_server_node.node_slug
+    if is_replacing: delete_node(partial_server_node.node_slug)
+
+    mongo_lib.nodes.update_one(
+        __node_id(partial_server_node.lookup_id),
+        {'$set': __to_partial_node_data(partial_server_node).model_dump(exclude_none=True)}
+    )
+
+    if is_replacing: return DatabaseResponse.REPLACED
+    return DatabaseResponse.UPDATED
 
 
 def delete_node(node_slug: Slug) -> DatabaseResponse:
@@ -48,5 +61,8 @@ def delete_node(node_slug: Slug) -> DatabaseResponse:
 
 def __to_node_data(request: NodeDataRequest) -> NodeData:
     return NodeData(**request.model_dump())
+
+def __to_partial_node_data(request: NodeDataRequest) -> NodeData:
+    return PartialNodeData(**request.model_dump(exclude_none=True))
 
 # endregion

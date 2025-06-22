@@ -1,5 +1,11 @@
 import {Inject, Injectable} from "@angular/core";
-import {DatabaseResponse, DefaultService as BackendApi, NodeData, NodeDataRequest} from '../../openapi-client';
+import {
+  DatabaseResponse,
+  DefaultService as BackendApi,
+  NodeData,
+  NodeDataRequest,
+  PartialNodeDataRequest
+} from '../../openapi-client';
 import {lastValueFrom} from 'rxjs';
 
 @Injectable()
@@ -18,6 +24,10 @@ export class NodeRepository {
 
   updateNode(request: NodeDataRequest): Promise<DatabaseResponse> {
     return lastValueFrom(this.backendApi.updateNode(request));
+  }
+
+  updateNodePartial(request: PartialNodeDataRequest): Promise<DatabaseResponse> {
+    return lastValueFrom(this.backendApi.updateNodePartial(request));
   }
 
   deleteNode(node_slug: string): Promise<DatabaseResponse> {

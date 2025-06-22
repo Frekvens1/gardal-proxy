@@ -24,7 +24,7 @@ services:
         - "--api.dashboard=true"
         - "--providers.file.filename=/etc/traefik/dynamic_config.yml"
         - "--providers.file.watch=true"
-        - "--providers.http.endpoint=$BACKEND_HOST/traefik_config"
+        - "--providers.http.endpoint=$BACKEND_HOST/traefik-config"
         - "--providers.http.pollInterval=5s"
         - "--entrypoints.web.address=:80"
         - "--entrypoints.websecure.address=:443"

@@ -10,12 +10,6 @@ http:
           - "/api/v1"
 
   routers:
-    base-router:
-      entryPoints:
-        - websecure
-      service: frontend-service
-      rule: Host(`{{ trim (env "DOMAIN_NAME") }}`)
-
     base-router-redirect:
       entryPoints:
         - web
@@ -24,11 +18,39 @@ http:
       service: frontend-service
       rule: Host(`{{ trim (env "DOMAIN_NAME") }}`)
 
+    base-router:
+      entryPoints:
+        - websecure
+      service: frontend-service
+      rule: Host(`{{ trim (env "DOMAIN_NAME") }}`)
+
     api-router:
       entryPoints:
         - websecure
       service: backend-service
       rule: Host(`{{ trim (env "DOMAIN_NAME") }}`) && PathPrefix(`/api/v1`)
+      middlewares:
+        - strip-api-prefix
+
+    ip-base-router-redirect:
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+      service: frontend-service
+      rule: "!HostRegexp(`{host:.+}`)"
+    
+    ip-base-router:
+      entryPoints:
+        - websecure
+      service: frontend-service
+      rule: "!HostRegexp(`{host:.+}`)"
+
+    ip-api-router:
+      entryPoints:
+        - websecure
+      service: backend-service
+      rule: "!HostRegexp(`{host:.+}`) && PathPrefix(`/api/v1`)"
       middlewares:
         - strip-api-prefix
 

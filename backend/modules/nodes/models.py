@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from modules.core_models import Protocol, Hostname, Port, URLPath, Slug
+from modules.core_models import Protocol, Hostname, Port, URLPath, Slug, partial_model
 
 
 class ConfigURLData(BaseModel):
@@ -39,7 +39,15 @@ class NodeData(BaseModel):
     node_slug: Slug
     config_url: ConfigURLData
     redirect_url: RedirectURLData
+    enabled: bool = Field(default=True, description='Enable config merging')
+    fetch_config: bool = Field(default=True, description='Enable fetching config from servers')
 
 
 class NodeDataRequest(NodeData):
-    existing_node_slug: Slug
+    lookup_id: Slug
+
+class PartialNodeData(partial_model(NodeDataRequest)):
+    node_slug: Slug
+
+class PartialNodeDataRequest(PartialNodeData):
+    lookup_id: Slug

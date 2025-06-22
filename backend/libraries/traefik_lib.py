@@ -4,7 +4,7 @@ from modules.core_models import Slug
 
 
 def get_domain_names_from_traefik_config(text: str) -> list:
-    pattern = r'Host.*?\(["\'`](.*?\..*?)["\'`]?\)'
+    pattern =r'Host\(\s*["\'`](?!\{)([\w\.-]+\.\w+)["\'`]\s*\)'
     matches = re.findall(pattern, text)
 
     return list(set(matches))
@@ -71,14 +71,14 @@ def build_config(slug: Slug, redirect_url: str, hostnames: list, traefik_config:
         traefik_config['http']['services'].update({service_name: service})
 
     # Add https redirect if not present
-    traefik_config['http']['middlewares'].update({'redirect-to-https': {
+    traefik_config['http']['middlewares'].setdefault({'redirect-to-https': {
         'redirectScheme': {
             'scheme': 'https'
         }
     }})
 
     # Add whitelist if not present
-    traefik_config['http']['middlewares'].update({'local-ip-whitelist': {
+    traefik_config['http']['middlewares'].setdefault({'local-ip-whitelist': {
         'ipWhiteList': {
             'sourceRange': [
                 '10.0.0.0/8',

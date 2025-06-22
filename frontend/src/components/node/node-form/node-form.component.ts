@@ -86,9 +86,9 @@ export class NodeFormComponent implements OnInit {
       configControls.port.setValue(this.nodeData.config_url.port);
       configControls.path.setValue(this.nodeData.config_url.path);
 
-      redirectControls.protocol.setValue(this.nodeData.config_url.protocol);
-      redirectControls.hostname.setValue(this.nodeData.config_url.hostname);
-      redirectControls.port.setValue(this.nodeData.config_url.port);
+      redirectControls.protocol.setValue(this.nodeData.redirect_url.protocol);
+      redirectControls.hostname.setValue(this.nodeData.redirect_url.hostname);
+      redirectControls.port.setValue(this.nodeData.redirect_url.port);
     }
   }
 

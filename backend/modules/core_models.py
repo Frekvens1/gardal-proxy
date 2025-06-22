@@ -1,7 +1,8 @@
 import re
 import ipaddress
 
-from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler, BaseModel, create_model
+from typing import Optional, Type, Any, Dict
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
@@ -9,6 +10,20 @@ hostname_regex = re.compile(
     r'^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)'
     r'(?:\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$'
 )
+
+
+def partial_model(base_model: Type[BaseModel], name_suffix: str = 'Partial') -> Type[BaseModel]:
+    fields: Dict[str, Any] = {
+        name: (Optional[field.annotation], None)
+        for name, field in base_model.model_fields.items()
+    }
+    partial_model_name = base_model.__name__ + name_suffix
+    return create_model(
+        partial_model_name,
+        __base__=base_model,
+        __config__=getattr(base_model, '__config__', None),
+        **fields
+    )
 
 
 class Slug(str):

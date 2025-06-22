@@ -69,10 +69,11 @@ export class NodeFormService {
   }
 
 
-async save(existingNodeSlug: string, nodeData: NodeData, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<void> {
+  async save(existingNodeSlug: string, nodeData: NodeData, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<boolean> {
     if (nodeData.config_url.path) nodeData.config_url.path = nodeData.config_url.path.replace(/^\/+/, '');
-    const request = {...nodeData, existing_node_slug: existingNodeSlug} as NodeDataRequest;
+    const request = {...nodeData, lookup_id: existingNodeSlug} as NodeDataRequest;
 
+    let noErrors = true;
     await this.nodeRepository.updateNode(request).then((response) => {
       switch (response) {
         case 'CREATED':
@@ -87,6 +88,7 @@ async save(existingNodeSlug: string, nodeData: NodeData, onSuccess: EventEmitter
           break;
 
         default:
+          noErrors = false;
           console.error({
             nodeData: nodeData,
           });
@@ -98,17 +100,20 @@ async save(existingNodeSlug: string, nodeData: NodeData, onSuccess: EventEmitter
           break;
       }
     }).catch((err) => {
+      noErrors = false;
       console.info({nodeData: nodeData});
       console.error(err);
       this.messageService.add({severity: 'error', summary: 'Error', detail: 'There was an error while adding node!'});
     });
+
+    return noErrors;
   }
 
   async delete(nodeData: NodeData, onSuccess: EventEmitter<[DatabaseResponse, NodeDataRequest]>): Promise<void> {
     await this.nodeRepository.deleteNode(nodeData.node_slug).then((response) => {
       switch (response) {
         case 'DELETED':
-          onSuccess.emit([response, {...nodeData, existing_node_slug: nodeData.node_slug}]);
+          onSuccess.emit([response, {...nodeData, lookup_id: nodeData.node_slug}]);
           this.messageService.add({severity: 'success', summary: 'Success', detail: 'Node successfully deleted!'});
           break;
 
